@@ -46,6 +46,26 @@ export const getDashboard = async (req: AuthRequest, res: Response): Promise<voi
   });
 };
 
+// ─── Update Levy Fee ─────────────────────────────────────────────────────────
+
+export const updateFee = async (req: AuthRequest, res: Response): Promise<void> => {
+  const agentId = await getAgentId(req.user!.userId);
+  if (!agentId) { res.status(404).json({ message: 'Agent profile not found' }); return; }
+
+  const { fee } = req.body;
+  if (!fee || isNaN(Number(fee)) || Number(fee) <= 0) {
+    res.status(400).json({ message: 'Invalid fee amount' });
+    return;
+  }
+
+  const agent = await prisma.agent.update({
+    where: { id: agentId },
+    data: { fee: Number(fee) },
+  });
+
+  res.json(agent);
+};
+
 // ─── Request Payment from Driver (send OTP) ───────────────────────────────────
 
 export const requestPayment = async (req: AuthRequest, res: Response): Promise<void> => {

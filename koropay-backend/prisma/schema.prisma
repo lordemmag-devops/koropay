@@ -82,7 +82,7 @@ model Agent {
   userId         String      @unique
   checkpoint     String
   location       String
-  fee            Float
+  fee            Float       @default(0)
   accountNumber  String?
   bankCode       String?
   status         AgentStatus @default(active)

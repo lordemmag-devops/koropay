@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle2, Wallet, TrendingUp, Clock, Send, KeyRound, Car, AlertCircle } from 'lucide-react';
+import { Search, CheckCircle2, Wallet, TrendingUp, Clock, Send, KeyRound, Car, AlertCircle, Pencil } from 'lucide-react';
 import { agentApi } from '../../utils/api';
 
 export default function AgentDashboard() {
@@ -11,6 +11,8 @@ export default function AgentDashboard() {
   const [otpInput, setOtpInput] = useState<Record<string, string>>({});
   const [otpError, setOtpError] = useState<string | null>(null);
   const [justPaid, setJustPaid] = useState<string | null>(null);
+  const [editingFee, setEditingFee] = useState(false);
+  const [feeInput, setFeeInput] = useState('');
 
   const fetchDashboard = () =>
     agentApi.getDashboard()
@@ -25,6 +27,16 @@ export default function AgentDashboard() {
   const todayTotal: number = dashData?.todayTotal ?? 0;
   const paidCount: number = dashData?.paidCount ?? 0;
   const levyFee: number = dashData?.agent?.fee ?? 0;
+
+  const handleSaveFee = async () => {
+    try {
+      await agentApi.updateFee(Number(feeInput));
+      setDashData((prev: any) => ({ ...prev, agent: { ...prev.agent, fee: Number(feeInput) } }));
+      setEditingFee(false);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   const paidDriverIds = new Set(todayPayments.filter(p => p.status === 'paid').map(p => p.driverId));
 
@@ -98,7 +110,26 @@ export default function AgentDashboard() {
           <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center mb-4">
             <Clock className="w-6 h-6 text-amber-400" />
           </div>
-          <p className="text-2xl font-bold text-white">₦{levyFee}</p>
+          {editingFee ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                value={feeInput}
+                onChange={(e) => setFeeInput(e.target.value)}
+                className="input-field text-lg font-bold w-28 py-1"
+                autoFocus
+              />
+              <button onClick={handleSaveFee} className="btn-primary text-xs px-3 py-1.5">Save</button>
+              <button onClick={() => setEditingFee(false)} className="text-surface-200/40 hover:text-white text-xs">Cancel</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-bold text-white">{levyFee > 0 ? `₦${levyFee}` : 'Not set'}</p>
+              <button onClick={() => { setFeeInput(String(levyFee || '')); setEditingFee(true); }} className="text-surface-200/30 hover:text-primary-400 transition-colors">
+                <Pencil className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <p className="text-sm text-surface-200/50 mt-1">Levy Per Driver</p>
         </motion.div>
       </div>

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Agent" ALTER COLUMN "fee" SET DEFAULT 0;

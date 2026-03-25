@@ -57,6 +57,8 @@ export const agentApi = {
   verifyPayment: (paymentId: string, otp: string) =>
     apiRequest(`/agent/payments/${paymentId}/verify`, { method: "POST", body: JSON.stringify({ otp }) }),
   getHistory: () => apiRequest("/agent/history"),
+  updateFee: (fee: number) =>
+    apiRequest("/agent/fee", { method: "PATCH", body: JSON.stringify({ fee }) }),
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -72,7 +74,7 @@ export const adminApi = {
   getAgents: (search?: string) =>
     apiRequest(`/admin/agents${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   getAgent: (id: string) => apiRequest(`/admin/agents/${id}`),
-  createAgent: (data: { name: string; phone: string; password: string; checkpoint: string; location: string; fee: number; accountNumber: string; bankCode: string }) =>
+  createAgent: (data: { name: string; phone: string; password: string; checkpoint: string; location: string; accountNumber: string; bankCode: string }) =>
     apiRequest("/admin/agents", { method: "POST", body: JSON.stringify(data) }),
   updateAgentStatus: (id: string, status: string) =>
     apiRequest(`/admin/agents/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),

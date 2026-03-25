@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../../middleware/auth';
-import { getDashboard, requestPayment, verifyPayment, getLevyHistory } from './agent.controller';
+import { getDashboard, requestPayment, verifyPayment, getLevyHistory, updateFee } from './agent.controller';
 
 const router = Router();
 
@@ -24,6 +24,7 @@ router.use(authenticate, authorize('agent'));
  *         description: Agent dashboard data
  */
 router.get('/dashboard', getDashboard);
+router.patch('/fee', updateFee);
 
 /**
  * @openapi

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Shield, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, X, QrCode, Wallet, Lock, Building2 } from 'lucide-react';
+import { Plus, Search, Shield, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, X, QrCode, Lock, Building2 } from 'lucide-react';
 import { adminApi, paymentApi } from '../../utils/api';
 
 const FALLBACK_BANKS = [
@@ -47,7 +47,6 @@ export default function AgentManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [newCheckpoint, setNewCheckpoint] = useState('');
   const [newLocation, setNewLocation] = useState('');
-  const [newFee, setNewFee] = useState('');
   const [newAccountNumber, setNewAccountNumber] = useState('');
   const [newBankCode, setNewBankCode] = useState('');
 
@@ -73,8 +72,8 @@ export default function AgentManagement() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await adminApi.createAgent({ name: newName, phone: newPhone, password: newPassword, checkpoint: newCheckpoint, location: newLocation, fee: Number(newFee), accountNumber: newAccountNumber, bankCode: newBankCode });
-      setNewName(''); setNewPhone(''); setNewPassword(''); setNewCheckpoint(''); setNewLocation(''); setNewFee(''); setNewAccountNumber(''); setNewBankCode('');
+      await adminApi.createAgent({ name: newName, phone: newPhone, password: newPassword, checkpoint: newCheckpoint, location: newLocation, accountNumber: newAccountNumber, bankCode: newBankCode });
+      setNewName(''); setNewPhone(''); setNewPassword(''); setNewCheckpoint(''); setNewLocation(''); setNewAccountNumber(''); setNewBankCode('');
       setShowAddModal(false);
       fetchAgents();
     } catch (err: any) {
@@ -226,13 +225,6 @@ export default function AgentManagement() {
                       <option key={b.bankCode} value={b.bankCode}>{b.bankName}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-surface-200/70 mb-2">Levy Fee (₦)</label>
-                  <div className="relative">
-                    <Wallet className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-200/30" />
-                    <input type="number" value={newFee} onChange={(e) => setNewFee(e.target.value)} placeholder="500" className="input-field pl-11" required />
-                  </div>
                 </div>
                 <button type="submit" disabled={submitting} className="w-full btn-primary mt-2 disabled:opacity-60">
                   {submitting ? 'Onboarding...' : 'Onboard Agent'}

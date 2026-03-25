@@ -149,7 +149,7 @@ export const getAgent = async (req: AuthRequest, res: Response): Promise<void> =
 };
 
 export const createAgent = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { name, phone, password, checkpoint, location, fee, accountNumber, bankCode } = req.body;
+  const { name, phone, password, checkpoint, location, accountNumber, bankCode } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
@@ -165,7 +165,7 @@ export const createAgent = async (req: AuthRequest, res: Response): Promise<void
       phone,
       password: hashed,
       role: 'agent',
-      agent: { create: { checkpoint, location, fee: Number(fee), accountNumber, bankCode } },
+      agent: { create: { checkpoint, location, accountNumber, bankCode } },
     },
     include: { agent: true },
   });

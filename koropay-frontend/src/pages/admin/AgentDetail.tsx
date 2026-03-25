@@ -97,7 +97,7 @@ export default function AgentDetail() {
             {agent.accountNumber && (
               <div><p className="text-xs text-surface-200/40 mb-1">Account Number</p><p className="text-sm font-medium text-white">{agent.accountNumber} &bull; Bank {agent.bankCode}</p></div>
             )}
-            <div><p className="text-xs text-surface-200/40 mb-1">Levy Fee</p><p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-primary-400 bg-clip-text text-transparent">₦{agent.fee}</p></div>
+            <div><p className="text-xs text-surface-200/40 mb-1">Levy Fee</p><p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-primary-400 bg-clip-text text-transparent">{agent.fee > 0 ? `₦${agent.fee}` : 'Not set'}</p></div>
             <div>
               <p className="text-xs text-surface-200/40 mb-1">Verification Method</p>
               <div className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-primary-400" /><p className="text-sm font-medium text-white">OTP-Based</p></div>

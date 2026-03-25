@@ -55,10 +55,10 @@ async function main() {
 
   // ─── Agents ───────────────────────────────────────────────────────────────
   const agentsData = [
-    { name: 'Ibrahim Sule', phone: '08099887766', checkpoint: 'Ojuelegba Checkpoint', location: 'Ojuelegba Under Bridge', fee: 500, accountNumber: '0223344556', bankCode: '057', collected: 245000, scans: 490 },
-    { name: 'Blessing Okoro', phone: '07044556677', checkpoint: 'Yaba Tollgate', location: 'Yaba Bus Terminal', fee: 350, accountNumber: '0445566778', bankCode: '033', collected: 178500, scans: 510 },
-    { name: 'Aliyu Danjuma', phone: '09033221100', checkpoint: 'Maryland Checkpoint', location: 'Maryland Mall Junction', fee: 450, accountNumber: '0667788990', bankCode: '044', collected: 162000, scans: 360 },
-    { name: 'Funke Adeyemi', phone: '08166554433', checkpoint: 'Oshodi Checkpoint', location: 'Oshodi Underbridge', fee: 400, accountNumber: '0889900112', bankCode: '058', collected: 56000, scans: 140 },
+    { name: 'Ibrahim Sule', phone: '08099887766', checkpoint: 'Ojuelegba Checkpoint', location: 'Ojuelegba Under Bridge', accountNumber: '0223344556', bankCode: '057', collected: 245000, scans: 490 },
+    { name: 'Blessing Okoro', phone: '07044556677', checkpoint: 'Yaba Tollgate', location: 'Yaba Bus Terminal', accountNumber: '0445566778', bankCode: '033', collected: 178500, scans: 510 },
+    { name: 'Aliyu Danjuma', phone: '09033221100', checkpoint: 'Maryland Checkpoint', location: 'Maryland Mall Junction', accountNumber: '0667788990', bankCode: '044', collected: 162000, scans: 360 },
+    { name: 'Funke Adeyemi', phone: '08166554433', checkpoint: 'Oshodi Checkpoint', location: 'Oshodi Underbridge', accountNumber: '0889900112', bankCode: '058', collected: 56000, scans: 140 },
   ];
 
   for (const a of agentsData) {
@@ -74,7 +74,7 @@ async function main() {
           create: {
             checkpoint: a.checkpoint,
             location: a.location,
-            fee: a.fee,
+
             accountNumber: a.accountNumber,
             bankCode: a.bankCode,
             totalCollected: a.collected,
