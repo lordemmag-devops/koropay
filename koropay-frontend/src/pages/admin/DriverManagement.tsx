@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Car, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, WifiOff, X, Lock } from 'lucide-react';
-import { adminApi } from '../../utils/api';
+import { Plus, Search, Car, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, WifiOff, X, Lock, Building2 } from 'lucide-react';
+import { adminApi, paymentApi } from '../../utils/api';
 
 export default function DriverManagement() {
   const navigate = useNavigate();
   const [drivers, setDrivers] = useState<any[]>([]);
+  const [banks, setBanks] = useState<{ bankCode: string; bankName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -18,6 +19,8 @@ export default function DriverManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [newPlate, setNewPlate] = useState('');
   const [newRoute, setNewRoute] = useState('');
+  const [newAccountNumber, setNewAccountNumber] = useState('');
+  const [newBankCode, setNewBankCode] = useState('');
 
   const fetchDrivers = (q?: string) =>
     adminApi.getDrivers(q)
@@ -26,6 +29,9 @@ export default function DriverManagement() {
       .finally(() => setLoading(false));
 
   useEffect(() => { fetchDrivers(); }, []);
+  useEffect(() => {
+    paymentApi.getBanks().then(setBanks).catch(console.error);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchDrivers(search || undefined), 300);
@@ -36,8 +42,8 @@ export default function DriverManagement() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await adminApi.createDriver({ name: newName, phone: newPhone, password: newPassword, vehiclePlate: newPlate, route: newRoute });
-      setNewName(''); setNewPhone(''); setNewPassword(''); setNewPlate(''); setNewRoute('');
+      await adminApi.createDriver({ name: newName, phone: newPhone, password: newPassword, vehiclePlate: newPlate, route: newRoute, accountNumber: newAccountNumber, bankCode: newBankCode });
+      setNewName(''); setNewPhone(''); setNewPassword(''); setNewPlate(''); setNewRoute(''); setNewAccountNumber(''); setNewBankCode('');
       setShowAddModal(false);
       fetchDrivers();
     } catch (err: any) {
@@ -178,6 +184,7 @@ export default function DriverManagement() {
                   { label: 'Login Password', value: newPassword, setter: setNewPassword, placeholder: 'Set login password', icon: Lock, type: 'password' },
                   { label: 'Vehicle Plate', value: newPlate, setter: setNewPlate, placeholder: 'ABC-123-XY', icon: Car, type: 'text' },
                   { label: 'Assigned Route', value: newRoute, setter: setNewRoute, placeholder: 'e.g. Ojuelegba → Yaba', icon: MapPin, type: 'text' },
+                  { label: 'Account Number', value: newAccountNumber, setter: setNewAccountNumber, placeholder: '0123456789', icon: Building2, type: 'text' },
                 ].map(field => (
                   <div key={field.label}>
                     <label className="block text-sm font-medium text-surface-200/70 mb-2">{field.label}</label>
@@ -187,6 +194,15 @@ export default function DriverManagement() {
                     </div>
                   </div>
                 ))}
+                <div>
+                  <label className="block text-sm font-medium text-surface-200/70 mb-2">Bank</label>
+                  <select value={newBankCode} onChange={(e) => setNewBankCode(e.target.value)} className="input-field" required>
+                    <option value="">Select bank...</option>
+                    {banks.map(b => (
+                      <option key={b.bankCode} value={b.bankCode}>{b.bankName}</option>
+                    ))}
+                  </select>
+                </div>
                 <button type="submit" disabled={submitting} className="w-full btn-primary mt-2 disabled:opacity-60">
                   {submitting ? 'Onboarding...' : 'Onboard Driver'}
                 </button>

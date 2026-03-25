@@ -65,7 +65,7 @@ export const adminApi = {
   getDrivers: (search?: string) =>
     apiRequest(`/admin/drivers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   getDriver: (id: string) => apiRequest(`/admin/drivers/${id}`),
-  createDriver: (data: { name: string; phone: string; password: string; vehiclePlate: string; route: string }) =>
+  createDriver: (data: { name: string; phone: string; password: string; vehiclePlate: string; route: string; accountNumber: string; bankCode: string }) =>
     apiRequest("/admin/drivers", { method: "POST", body: JSON.stringify(data) }),
   updateDriverStatus: (id: string, status: string) =>
     apiRequest(`/admin/drivers/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
@@ -91,4 +91,11 @@ export const adminApi = {
     apiRequest(`/admin/levy-settings/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteLevySetting: (id: string) =>
     apiRequest(`/admin/levy-settings/${id}`, { method: "DELETE" }),
+};
+
+// ─── Payment ──────────────────────────────────────────────────────────────────
+export const paymentApi = {
+  getBanks: () => apiRequest("/payment/banks"),
+  initiateUssdPayment: (data: { tripId: string; passengerPhone: string; passengerBankCode: string; dropPoint?: string }) =>
+    apiRequest("/payment/ussd/initiate", { method: "POST", body: JSON.stringify(data) }),
 };

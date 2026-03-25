@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { verifyTransaction, confirmTripPayment, confirmLevyPayment } from './payment.controller';
+import { verifyTransaction, confirmTripPayment, confirmLevyPayment, getSupportedBanks, initiateUssdPayment } from './payment.controller';
 
 const router = Router();
+
+router.get('/banks', getSupportedBanks);
+router.post('/ussd/initiate', initiateUssdPayment);
 
 /**
  * @openapi

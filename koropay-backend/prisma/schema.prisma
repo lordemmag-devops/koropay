@@ -63,6 +63,8 @@ model Driver {
   userId        String       @unique
   vehiclePlate  String       @unique
   route         String
+  accountNumber String?
+  bankCode      String?
   status        DriverStatus @default(active)
   totalEarnings Float        @default(0)
   totalTrips    Int          @default(0)

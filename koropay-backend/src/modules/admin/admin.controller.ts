@@ -70,7 +70,7 @@ export const getDriver = async (req: AuthRequest, res: Response): Promise<void> 
 };
 
 export const createDriver = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { name, phone, password, vehiclePlate, route } = req.body;
+  const { name, phone, password, vehiclePlate, route, accountNumber, bankCode } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
@@ -86,7 +86,7 @@ export const createDriver = async (req: AuthRequest, res: Response): Promise<voi
       phone,
       password: hashed,
       role: 'driver',
-      driver: { create: { vehiclePlate, route: route || '' } },
+      driver: { create: { vehiclePlate, route: route || '', accountNumber, bankCode } },
     },
     include: { driver: true },
   });

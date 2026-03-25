@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { mockRoutes } from '../data/mock';
+import { paymentApi } from '../utils/api';
 import type { USSDStep, DropPoint } from '../types';
 
 export default function USSDSimulator() {
@@ -9,6 +10,15 @@ export default function USSDSimulator() {
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const [selectedDrop, setSelectedDrop] = useState<DropPoint | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [passengerBankCode, setPassengerBankCode] = useState('');
+  const [banks, setBanks] = useState<{ bankCode: string; bankName: string }[]>([]);
+  const [resolvedName, setResolvedName] = useState('');
+  const [paymentRef, setPaymentRef] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    paymentApi.getBanks().then(setBanks).catch(console.error);
+  }, []);
 
   const activeRoute = mockRoutes.find(r => r.id === selectedRoute);
 
@@ -17,6 +27,10 @@ export default function USSDSimulator() {
     setSelectedRoute(null);
     setSelectedDrop(null);
     setPhoneNumber('');
+    setPassengerBankCode('');
+    setResolvedName('');
+    setPaymentRef('');
+    setError('');
   };
 
   const handleDial = () => {
@@ -45,11 +59,23 @@ export default function USSDSimulator() {
     setStep('confirm_fare');
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    setError('');
     setStep('processing');
-    setTimeout(() => {
+    try {
+      const result = await paymentApi.initiateUssdPayment({
+        tripId: activeRoute!.id, // in real USSD this comes from the active trip
+        passengerPhone: phoneNumber,
+        passengerBankCode,
+        dropPoint: selectedDrop?.name,
+      });
+      setResolvedName(result.passengerName);
+      setPaymentRef(result.interswitchRef || `KP-${Date.now().toString().slice(-8)}`);
       setStep('confirmation');
-    }, 2500);
+    } catch (err: any) {
+      setError(err.message || 'Payment failed');
+      setStep('confirm_fare');
+    }
   };
 
   const renderScreen = () => {
@@ -75,13 +101,24 @@ export default function USSDSimulator() {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="*384*772#"
-                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all"
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all mb-3"
               />
+              <select
+                value={passengerBankCode}
+                onChange={(e) => setPassengerBankCode(e.target.value)}
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary-500/50 transition-all"
+              >
+                <option value="">Select your bank...</option>
+                {banks.map(b => (
+                  <option key={b.bankCode} value={b.bankCode}>{b.bankName}</option>
+                ))}
+              </select>
             </div>
             <div className="p-4">
               <button
                 onClick={handleDial}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
+                disabled={!phoneNumber.trim() || !passengerBankCode}
+                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 Dial
               </button>
@@ -199,6 +236,7 @@ export default function USSDSimulator() {
               >
                 Pay ₦{activeRoute?.fare}
               </button>
+              {error && <p className="text-xs text-rose-400 text-center">{error}</p>}
               <button onClick={() => setStep('select_drop')} className="w-full btn-ghost text-sm flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
@@ -247,13 +285,16 @@ export default function USSDSimulator() {
             <p className="text-sm text-surface-200/50 mt-1 text-center">
               ₦{activeRoute?.fare} paid for {activeRoute?.routeName}
             </p>
+            {resolvedName && (
+              <p className="text-xs text-primary-300 mt-0.5">Passenger: {resolvedName}</p>
+            )}
             {selectedDrop && (
               <p className="text-xs text-surface-200/30 mt-0.5">
                 Drop: {selectedDrop.name}
               </p>
             )}
             <p className="text-xs text-surface-200/30 mt-1">
-              Ref: KP-{Date.now().toString().slice(-8)}
+              Ref: {paymentRef}
             </p>
             <button
               onClick={reset}

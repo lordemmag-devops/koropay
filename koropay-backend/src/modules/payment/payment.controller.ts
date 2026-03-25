@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/prisma';
-import { interswitchClient } from '../../config/interswitch';
+import { interswitchClient, getBanks, getAccountName, initiateTransfer } from '../../config/interswitch';
 import { AuthRequest } from '../../types';
 
 // ─── Send OTP via Interswitch Safetoken ──────────────────────────────────────
@@ -94,6 +94,92 @@ export const confirmTripPayment = async (req: AuthRequest, res: Response): Promi
     res.status(201).json(payment);
   } catch (err: any) {
     res.status(502).json({ message: 'Failed to confirm payment', error: err?.response?.data || err.message });
+  }
+};
+
+// ─── Get Supported Banks ─────────────────────────────────────────────────────
+
+export const getSupportedBanks = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const banks = await getBanks();
+    res.json(banks);
+  } catch (err: any) {
+    res.status(502).json({ message: 'Failed to fetch banks', error: err?.response?.data || err.message });
+  }
+};
+
+// ─── Initiate USSD Payment ────────────────────────────────────────────────────
+
+export const initiateUssdPayment = async (req: Request, res: Response): Promise<void> => {
+  const { tripId, passengerPhone, passengerBankCode, dropPoint } = req.body;
+
+  try {
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, status: 'ongoing' },
+      include: { driver: true },
+    });
+    if (!trip) { res.status(404).json({ message: 'Active trip not found' }); return; }
+
+    const { accountNumber: driverAccount, bankCode: driverBankCode } = trip.driver;
+    if (!driverAccount || !driverBankCode) {
+      res.status(400).json({ message: 'Driver has no bank account on file' });
+      return;
+    }
+
+    // Resolve passenger name from their bank account
+    const passengerName = await getAccountName(passengerPhone, passengerBankCode);
+
+    // Debit passenger, credit driver
+    const requestRef = `KP-${Date.now()}-${tripId.slice(-6)}`;
+    const transfer = await initiateTransfer({
+      amount: trip.fare,
+      debitAccountNumber: passengerPhone,
+      debitBankCode: passengerBankCode,
+      creditAccountNumber: driverAccount,
+      creditBankCode: driverBankCode,
+      narration: `KoroPay fare - ${trip.id}`,
+      requestRef,
+    });
+
+    if (transfer.responseCode !== '00') {
+      res.status(400).json({ message: 'Transfer failed', responseDescription: transfer.responseDescription });
+      return;
+    }
+
+    const [payment] = await prisma.$transaction([
+      prisma.tripPayment.create({
+        data: {
+          tripId,
+          passengerName,
+          passengerPhone,
+          amount: trip.fare,
+          dropPoint,
+          status: 'completed',
+          interswitchRef: transfer.transactionRef,
+          paymentChannel: 'ussd',
+        },
+      }),
+      prisma.trip.update({
+        where: { id: tripId },
+        data: { totalPassengers: { increment: 1 }, totalAmount: { increment: trip.fare } },
+      }),
+      prisma.transaction.create({
+        data: {
+          tripId,
+          passengerName,
+          amount: trip.fare,
+          type: 'passenger_payment',
+          status: 'completed',
+          dropPoint,
+          interswitchRef: transfer.transactionRef,
+          paymentChannel: 'ussd',
+        },
+      }),
+    ]);
+
+    res.status(201).json({ ...payment, passengerName });
+  } catch (err: any) {
+    res.status(502).json({ message: 'Payment failed', error: err?.response?.data || err.message });
   }
 };
 
