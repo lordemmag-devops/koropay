@@ -41,12 +41,13 @@ Informal transport systems face persistent challenges:
 
 KoroPay provides:
 
-1. **Passenger-to-driver digital payments** using a single fixed fare per trip
-2. **Optional drop point selection** for driver awareness and record-keeping
-3. **Driver dashboard** for real-time trip tracking and earnings management
-4. **OTP-based union levy payments** — union-controlled pricing, agent-verified collection
-5. **Admin panel** for managing drivers, agents, transactions, and levy settings
-6. **USSD simulator** for demonstrating the passenger payment flow
+1. **Passenger-to-driver digital payments** — passenger dials USSD, Interswitch debits their bank account and credits the driver's account instantly
+2. **Automatic passenger name resolution** — pulled from the passenger's bank account via Interswitch account enquiry, no manual entry needed
+3. **Optional drop point selection** for driver awareness and record-keeping
+4. **Driver dashboard** for real-time trip tracking and earnings management
+5. **OTP-based union levy payments** — union-controlled pricing, agent-verified collection
+6. **Admin panel** for managing drivers, agents, transactions, and levy settings
+7. **USSD simulator** for demonstrating the full passenger payment flow (backed by real Interswitch API calls)
 
 ---
 
@@ -68,7 +69,7 @@ KoroPay provides:
 
 ### Admin
 - System-wide dashboard with total drivers, agents, revenue, and levies collected
-- Onboard and manage drivers and agents
+- Onboard and manage drivers and agents — including bank account number and bank selection for payment settlement
 - Update driver/agent status (active, suspended, offline)
 - View all transactions with filtering by type and status
 - Centrally manage levy settings (create, update amount, toggle active, delete)
@@ -96,7 +97,7 @@ KoroPay provides:
 - Backend: Node.js, Express 5, TypeScript, Prisma ORM
 - Database: PostgreSQL 16
 - Auth: JWT + bcrypt
-- Payments: Interswitch (Safetoken OTP + transaction verification)
+- Payments: Interswitch (Safetoken OTP + account name enquiry + inter-bank funds transfer)
 - Containerisation: Docker + Docker Compose
 
 ---
@@ -119,7 +120,7 @@ koropay/
 │   │   │   ├── admin/           # Drivers, Agents, Transactions, Levy Settings
 │   │   │   ├── driver/          # Routes, Trips, Payments, Levies
 │   │   │   ├── agent/           # Dashboard, OTP collection, History
-│   │   │   └── payment/         # Interswitch payment confirmation
+│   │   │   └── payment/         # Interswitch: bank list, USSD payment initiation, confirmation
 │   │   ├── types/               # Shared TypeScript types
 │   │   └── utils/               # JWT helpers
 │   ├── Dockerfile
@@ -143,7 +144,7 @@ koropay/
 │   │   │   └── USSDSimulator.tsx
 │   │   ├── types/               # Shared TypeScript types
 │   │   └── utils/
-│   │       └── api.ts           # Typed API helpers (authApi, driverApi, agentApi, adminApi)
+│   │       └── api.ts           # Typed API helpers (authApi, driverApi, agentApi, adminApi, paymentApi)
 │   ├── Dockerfile
 │   └── package.json
 │
@@ -307,6 +308,15 @@ All endpoints are prefixed with `/api`. Full Swagger docs available at **http://
 | POST | `/agent/payments/:id/verify` | Verify OTP and mark payment as paid |
 | GET | `/agent/history` | Full levy collection history |
 
+### Payment
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/payment/banks` | None | List all supported Nigerian banks with codes |
+| POST | `/payment/ussd/initiate` | None | Debit passenger, credit driver, resolve passenger name via Interswitch |
+| GET | `/payment/verify/:transactionRef` | None | Verify an Interswitch transaction by reference |
+| POST | `/payment/confirm/trip` | JWT | Manually confirm and record a trip payment |
+| POST | `/payment/confirm/levy` | JWT | Manually confirm and record a levy payment |
+
 ---
 
 ## Demo Credentials
@@ -328,10 +338,18 @@ After seeding (automatic with Docker), use these to log in:
 1. Login → Driver Dashboard
 2. Set Route — define route name, fixed fare, and drop points
 3. Start Trip — select a route to begin
-4. Passenger payments appear live during the trip
-5. End Trip — view full summary (passengers, earnings, duration)
-6. Earnings — view all trip history with per-passenger breakdown
-7. Levies — view pending levies, request OTP, verify to pay
+4. Passenger dials USSD, selects route and drop point, confirms payment — Interswitch debits passenger and credits driver; passenger name resolved automatically from their bank account
+5. Payment appears live on the driver's trip screen
+6. End Trip — view full summary (passengers, earnings, duration)
+7. Earnings — view all trip history with per-passenger breakdown
+8. Levies — view pending levies, request OTP, verify to pay
+
+### Passenger Flow (USSD)
+1. Dial USSD code and select bank
+2. Select route
+3. Select drop point (optional)
+4. Confirm fare — Interswitch debits bank account and credits driver instantly
+5. Receive confirmation with transaction reference
 
 ### Agent Flow
 1. Login → Checkpoint Dashboard
@@ -356,7 +374,7 @@ After seeding (automatic with Docker), use these to log in:
 | Table | Key Fields |
 |-------|-----------|
 | `User` | id, name, phone, password, role |
-| `Driver` | id, userId, vehiclePlate, route, status, totalEarnings, totalTrips |
+| `Driver` | id, userId, vehiclePlate, route, accountNumber, bankCode, status, totalEarnings, totalTrips |
 | `Agent` | id, userId, checkpoint, location, fee, status, totalCollected, totalScans |
 | `Route` | id, driverId, routeName, fare |
 | `DropPoint` | id, routeId, name |
@@ -370,9 +388,10 @@ After seeding (automatic with Docker), use these to log in:
 
 ## Future Improvements
 
-- Full USSD integration with a real telecom provider
+- Full USSD integration with a real telecom provider (currently simulated in-browser)
 - SMS delivery for OTP via Interswitch Safetoken
 - Passenger receipt generation
+- Allow drivers to update their bank account details from their profile
 - AI-powered route optimization
 - Offline mode for low-connectivity environments
 - Analytics dashboard with charts and export
