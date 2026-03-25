@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 
@@ -33,6 +33,12 @@ function PageLoader() {
   );
 }
 
+function RequireAuth() {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  return user ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -41,31 +47,29 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
 
-            {/* Admin routes */}
-            <Route element={<Layout />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/drivers" element={<DriverManagement />} />
-              <Route path="/admin/drivers/:id" element={<DriverDetail />} />
-              <Route path="/admin/agents" element={<AgentManagement />} />
-              <Route path="/admin/agents/:id" element={<AgentDetail />} />
-              <Route path="/admin/transactions" element={<Transactions />} />
-              <Route path="/admin/levy-settings" element={<LevySettings />} />
-            </Route>
+            <Route element={<RequireAuth />}>
+              <Route element={<Layout />}>
+                {/* Admin */}
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/admin/drivers" element={<DriverManagement />} />
+                <Route path="/admin/drivers/:id" element={<DriverDetail />} />
+                <Route path="/admin/agents" element={<AgentManagement />} />
+                <Route path="/admin/agents/:id" element={<AgentDetail />} />
+                <Route path="/admin/transactions" element={<Transactions />} />
+                <Route path="/admin/levy-settings" element={<LevySettings />} />
 
-            {/* Driver routes */}
-            <Route element={<Layout />}>
-              <Route path="/driver/dashboard" element={<Dashboard />} />
-              <Route path="/driver/routes" element={<RoutesPage />} />
-              <Route path="/driver/trip" element={<TripPage />} />
-              <Route path="/driver/earnings" element={<Earnings />} />
-              <Route path="/driver/levies" element={<Levies />} />
-              <Route path="/driver/ussd" element={<USSDSimulator />} />
-            </Route>
+                {/* Driver */}
+                <Route path="/driver/dashboard" element={<Dashboard />} />
+                <Route path="/driver/routes" element={<RoutesPage />} />
+                <Route path="/driver/trip" element={<TripPage />} />
+                <Route path="/driver/earnings" element={<Earnings />} />
+                <Route path="/driver/levies" element={<Levies />} />
+                <Route path="/driver/ussd" element={<USSDSimulator />} />
 
-            {/* Agent routes */}
-            <Route element={<Layout />}>
-              <Route path="/agent/dashboard" element={<AgentDashboard />} />
-              <Route path="/agent/history" element={<LevyHistory />} />
+                {/* Agent */}
+                <Route path="/agent/dashboard" element={<AgentDashboard />} />
+                <Route path="/agent/history" element={<LevyHistory />} />
+              </Route>
             </Route>
 
             <Route path="*" element={<Navigate to="/login" replace />} />

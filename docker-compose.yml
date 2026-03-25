@@ -36,12 +36,15 @@ services:
       - "5000:5000"
     command: >
       sh -c "npx prisma migrate deploy &&
+             node dist/seed.js &&
              node dist/app.js"
 
   frontend:
     build:
       context: ./koropay-frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000/api
     container_name: koropay-frontend
     restart: unless-stopped
     depends_on:

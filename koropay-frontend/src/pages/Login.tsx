@@ -6,11 +6,12 @@ import { useAuth, type UserRole } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login, registeredUsers } = useAuth();
+  const { login } = useAuth();
   const [role, setRole] = useState<UserRole>('admin');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const roles: { value: UserRole; label: string; icon: typeof User; desc: string }[] = [
     { value: 'admin', label: 'Admin', icon: Shield, desc: 'Manage drivers & agents' },
@@ -26,36 +27,26 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!phone) {
-      setError('Please enter your phone number');
-      return;
+    if (!phone) { setError('Please enter your phone number'); return; }
+    if (!password) { setError('Please enter your password'); return; }
+
+    setLoading(true);
+    try {
+      await login(phone, password);
+      navigateByRole(role);
+    } catch (err: any) {
+      setError(err.message || 'Invalid phone number or password');
+    } finally {
+      setLoading(false);
     }
-
-    if (!password) {
-      setError('Please enter your password');
-      return;
-    }
-
-    const match = registeredUsers.find(
-      (u) => u.phone === phone && u.password === password && u.role === role
-    );
-
-    if (!match) {
-      setError('Invalid phone number or password');
-      return;
-    }
-
-    login({ name: match.name, phone: match.phone, role: match.role });
-    navigateByRole(match.role);
   };
 
   return (
     <div className="min-h-screen bg-surface-950 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[150px]" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-600/8 rounded-full blur-[120px]" />
@@ -67,7 +58,6 @@ export default function Login() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-lg relative"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
           <motion.div
             initial={{ scale: 0 }}
@@ -81,10 +71,8 @@ export default function Login() {
           <p className="text-surface-200/50 text-sm">Digital transport payments made simple</p>
         </div>
 
-        {/* Card */}
         <div className="glass-card p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Role Selection */}
             <div>
               <label className="block text-sm font-medium text-surface-200/70 mb-3">Login as</label>
               <div className="grid grid-cols-3 gap-3">
@@ -99,15 +87,9 @@ export default function Login() {
                         : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
                     }`}
                   >
-                    <r.icon className={`w-6 h-6 mx-auto mb-2 ${
-                      role === r.value ? 'text-primary-400' : 'text-surface-200/30'
-                    }`} />
-                    <span className={`text-sm font-medium block ${
-                      role === r.value ? 'text-white' : 'text-surface-200/50'
-                    }`}>{r.label}</span>
-                    <span className={`text-[10px] block mt-0.5 ${
-                      role === r.value ? 'text-surface-200/50' : 'text-surface-200/25'
-                    }`}>{r.desc}</span>
+                    <r.icon className={`w-6 h-6 mx-auto mb-2 ${role === r.value ? 'text-primary-400' : 'text-surface-200/30'}`} />
+                    <span className={`text-sm font-medium block ${role === r.value ? 'text-white' : 'text-surface-200/50'}`}>{r.label}</span>
+                    <span className={`text-[10px] block mt-0.5 ${role === r.value ? 'text-surface-200/50' : 'text-surface-200/25'}`}>{r.desc}</span>
                   </button>
                 ))}
               </div>
@@ -141,19 +123,20 @@ export default function Login() {
               </div>
             </div>
 
-            {error && (
-              <p className="text-red-400 text-sm text-center">{error}</p>
-            )}
+            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
             <button
               type="submit"
-              className="w-full btn-primary flex items-center justify-center gap-2 py-3.5"
+              disabled={loading}
+              className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Login as {roles.find(r => r.value === role)?.label}
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>Login as {roles.find(r => r.value === role)?.label}<ArrowRight className="w-4 h-4" /></>
+              )}
             </button>
           </form>
-
         </div>
 
         <p className="text-center text-xs text-surface-200/30 mt-6">

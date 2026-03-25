@@ -1,87 +1,55 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  MapPin,
-  Play,
-  Wallet,
-  Shield,
-  ArrowRight,
-  CheckCircle2,
-  Clock,
-  Users,
-} from 'lucide-react';
-import { mockTrips, todayStats, mockUnionPayments } from '../data/mock';
+import { MapPin, Play, Wallet, Shield, ArrowRight, CheckCircle2, Clock, Users } from 'lucide-react';
+import { driverApi } from '../utils/api';
 
-const container = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 },
-};
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const pendingLevies = mockUnionPayments.filter(p => p.status === 'pending').length;
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    driverApi.getDashboard()
+      .then(setData)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const pendingLevies = data?.pendingLevies ?? 0;
+  const totalEarnings = data?.totalEarnings ?? 0;
+  const totalTrips = data?.totalTrips ?? 0;
+  const totalPassengers = data?.totalPassengers ?? 0;
+  const trips = data?.trips ?? [];
 
   const actionCards = [
-    {
-      title: 'Set Route',
-      desc: 'Define your route and fare',
-      icon: MapPin,
-      color: 'from-primary-400/20 to-primary-600/20',
-      iconColor: 'text-primary-400',
-      path: '/driver/routes',
-    },
-    {
-      title: 'Start Trip',
-      desc: 'Begin a new trip',
-      icon: Play,
-      color: 'from-emerald-400/20 to-emerald-600/20',
-      iconColor: 'text-emerald-400',
-      path: '/driver/trip',
-    },
-    {
-      title: 'Earnings',
-      desc: `₦${todayStats.totalEarnings.toLocaleString()} today`,
-      icon: Wallet,
-      color: 'from-amber-400/20 to-amber-600/20',
-      iconColor: 'text-amber-400',
-      path: '/driver/earnings',
-    },
-    {
-      title: 'Levies',
-      desc: pendingLevies > 0 ? `${pendingLevies} pending` : 'All paid',
-      icon: Shield,
-      color: 'from-rose-400/20 to-rose-600/20',
-      iconColor: 'text-rose-400',
-      path: '/driver/levies',
-      badge: pendingLevies > 0 ? pendingLevies : undefined,
-    },
+    { title: 'Set Route', desc: 'Define your route and fare', icon: MapPin, color: 'from-primary-400/20 to-primary-600/20', iconColor: 'text-primary-400', path: '/driver/routes' },
+    { title: 'Start Trip', desc: 'Begin a new trip', icon: Play, color: 'from-emerald-400/20 to-emerald-600/20', iconColor: 'text-emerald-400', path: '/driver/trip' },
+    { title: 'Earnings', desc: `₦${totalEarnings.toLocaleString()} today`, icon: Wallet, color: 'from-amber-400/20 to-amber-600/20', iconColor: 'text-amber-400', path: '/driver/earnings' },
+    { title: 'Levies', desc: pendingLevies > 0 ? `${pendingLevies} pending` : 'All paid', icon: Shield, color: 'from-rose-400/20 to-rose-600/20', iconColor: 'text-rose-400', path: '/driver/levies', badge: pendingLevies > 0 ? pendingLevies : undefined },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-1">Driver Dashboard</h1>
         <p className="text-surface-200/60">
           {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </motion.div>
 
-      {/* 4 Action Cards */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8"
-      >
+      <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
         {actionCards.map((card) => (
           <motion.div
             key={card.title}
@@ -112,48 +80,41 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
-      {/* Today's Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="glass-card p-4 text-center">
           <Wallet className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">₦{todayStats.totalEarnings.toLocaleString()}</p>
+          <p className="text-xl font-bold text-white">₦{totalEarnings.toLocaleString()}</p>
           <p className="text-xs text-surface-200/40">Today's Earnings</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Play className="w-5 h-5 text-primary-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">{todayStats.totalTrips}</p>
+          <p className="text-xl font-bold text-white">{totalTrips}</p>
           <p className="text-xs text-surface-200/40">Trips Today</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Users className="w-5 h-5 text-amber-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">{todayStats.totalPassengers}</p>
+          <p className="text-xl font-bold text-white">{totalPassengers}</p>
           <p className="text-xs text-surface-200/40">Passengers</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Shield className="w-5 h-5 text-rose-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">₦{todayStats.unionPayments.toLocaleString()}</p>
-          <p className="text-xs text-surface-200/40">Levies Paid</p>
+          <p className="text-xl font-bold text-white">{pendingLevies}</p>
+          <p className="text-xs text-surface-200/40">Pending Levies</p>
         </div>
       </motion.div>
 
-      {/* Recent Trips */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="glass-card overflow-hidden"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass-card overflow-hidden">
         <div className="px-6 py-5 border-b border-white/[0.06]">
           <h2 className="text-lg font-semibold text-white">Recent Trips</h2>
           <p className="text-sm text-surface-200/50 mt-0.5">Your trip history today</p>
         </div>
         <div className="divide-y divide-white/[0.04]">
-          {mockTrips.map((trip, i) => (
+          {trips.length === 0 ? (
+            <div className="p-8 text-center">
+              <Clock className="w-8 h-8 text-surface-200/15 mx-auto mb-2" />
+              <p className="text-sm text-surface-200/40">No trips today yet</p>
+            </div>
+          ) : trips.map((trip: any, i: number) => (
             <motion.div
               key={trip.id}
               initial={{ opacity: 0, x: -10 }}
@@ -166,7 +127,7 @@ export default function Dashboard() {
                   <MapPin className="w-4 h-4 text-primary-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{trip.route}</p>
+                  <p className="text-sm font-medium text-white">{trip.route?.routeName ?? trip.routeId}</p>
                   <div className="flex items-center gap-3 mt-0.5">
                     <span className="flex items-center gap-1 text-xs text-surface-200/40">
                       <Users className="w-3 h-3" /> {trip.totalPassengers} passengers
@@ -180,7 +141,7 @@ export default function Dashboard() {
               <div className="text-right">
                 <p className="text-sm font-bold text-emerald-400">₦{trip.totalAmount.toLocaleString()}</p>
                 <span className="badge-success text-[10px]">
-                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> Completed
+                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> {trip.status}
                 </span>
               </div>
             </motion.div>

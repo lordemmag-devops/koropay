@@ -10,7 +10,9 @@ RUN npx prisma generate
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+
+# Temporarily include prisma folder for seed compilation, then build
+RUN cp -r prisma/seed.ts src/seed.ts && npm run build && rm src/seed.ts
 
 # ─── Production image ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner

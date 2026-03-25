@@ -1,4 +1,8 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+const envPath = path.resolve(__dirname, '../../.env');
+if (fs.existsSync(envPath)) dotenv.config({ path: envPath });
 import express from 'express';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
