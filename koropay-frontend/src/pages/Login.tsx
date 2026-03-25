@@ -93,47 +93,6 @@ export default function Login() {
     }
   };
 
-  /**
-   * Bypasses the database check for demo purposes.
-   * Manually triggers the login state with mock data.
-   */
-  const handleDemoLogin = (r: UserRole) => {
-    const demoUsers: Record<UserRole, any> = {
-      admin: {
-        id: "demo-admin",
-        name: "Demo Admin",
-        phone: "08000000000",
-        role: "admin",
-        token: "demo-token-admin",
-      },
-      driver: {
-        id: "demo-driver",
-        name: "Demo Driver",
-        phone: "08012345678",
-        role: "driver",
-        token: "demo-token-driver",
-        driver: { id: "d1", vehiclePlate: "DEMO-123", route: "Oshodi - Yaba" },
-      },
-      agent: {
-        id: "demo-agent",
-        name: "Demo Agent",
-        phone: "08099887766",
-        role: "agent",
-        token: "demo-token-agent",
-        agent: { id: "a1", checkpoint: "Demo Post", fee: 500 },
-      },
-    };
-
-    const user = demoUsers[r];
-    setRole(r);
-    setPhone(user.phone);
-    setPassword("demo123"); // Visual feedback for the password field
-
-    // Call the context login directly to bypass the database API
-    login(user);
-    navigateByRole(r);
-  };
-
   return (
     <div className="min-h-screen bg-surface-950 flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -263,23 +222,6 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-white/[0.06]">
-            <p className="text-xs text-surface-200/30 text-center mb-3">
-              Quick demo access
-            </p>
-            <div className="flex gap-2">
-              {roles.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => handleDemoLogin(r.value)}
-                  disabled={isLoading}
-                  className="flex-1 py-2 px-3 rounded-lg bg-white/[0.04] border border-white/[0.06] text-xs text-surface-200/50 hover:text-white hover:bg-white/[0.08] transition-all text-center"
-                >
-                  Demo {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <p className="text-center text-xs text-surface-200/30 mt-6">
