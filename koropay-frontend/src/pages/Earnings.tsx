@@ -228,7 +228,7 @@ export default function Earnings() {
           ))}
           {trips.length === 0 && (
             <div className="p-10 text-center text-surface-200/30 text-sm">
-              No trips recorded for this period.
+              No trips recorded for this period
             </div>
           )}
         </div>
