@@ -1,12 +1,41 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Shield, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, X, QrCode, Wallet, Lock } from 'lucide-react';
-import { adminApi } from '../../utils/api';
+import { Plus, Search, Shield, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, X, QrCode, Wallet, Lock, Building2 } from 'lucide-react';
+import { adminApi, paymentApi } from '../../utils/api';
+
+const FALLBACK_BANKS = [
+  { bankCode: '044', bankName: 'Access Bank' },
+  { bankCode: '023', bankName: 'Citibank' },
+  { bankCode: '050', bankName: 'EcoBank' },
+  { bankCode: '011', bankName: 'First Bank' },
+  { bankCode: '214', bankName: 'First City Monument Bank (FCMB)' },
+  { bankCode: '070', bankName: 'Fidelity Bank' },
+  { bankCode: '058', bankName: 'Guaranty Trust Bank (GTBank)' },
+  { bankCode: '030', bankName: 'Heritage Bank' },
+  { bankCode: '301', bankName: 'Jaiz Bank' },
+  { bankCode: '082', bankName: 'Keystone Bank' },
+  { bankCode: '526', bankName: 'Moniepoint MFB' },
+  { bankCode: '076', bankName: 'Polaris Bank' },
+  { bankCode: '101', bankName: 'Providus Bank' },
+  { bankCode: '221', bankName: 'Stanbic IBTC Bank' },
+  { bankCode: '068', bankName: 'Standard Chartered Bank' },
+  { bankCode: '232', bankName: 'Sterling Bank' },
+  { bankCode: '100', bankName: 'Suntrust Bank' },
+  { bankCode: '032', bankName: 'Union Bank' },
+  { bankCode: '033', bankName: 'United Bank for Africa (UBA)' },
+  { bankCode: '215', bankName: 'Unity Bank' },
+  { bankCode: '035', bankName: 'Wema Bank' },
+  { bankCode: '057', bankName: 'Zenith Bank' },
+  { bankCode: '627', bankName: 'Kuda MFB' },
+  { bankCode: '090405', bankName: 'Opay' },
+  { bankCode: '090110', bankName: 'PalmPay' },
+];
 
 export default function AgentManagement() {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<any[]>([]);
+  const [banks, setBanks] = useState<{ bankCode: string; bankName: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -19,6 +48,8 @@ export default function AgentManagement() {
   const [newCheckpoint, setNewCheckpoint] = useState('');
   const [newLocation, setNewLocation] = useState('');
   const [newFee, setNewFee] = useState('');
+  const [newAccountNumber, setNewAccountNumber] = useState('');
+  const [newBankCode, setNewBankCode] = useState('');
 
   const fetchAgents = (q?: string) =>
     adminApi.getAgents(q)
@@ -27,6 +58,11 @@ export default function AgentManagement() {
       .finally(() => setLoading(false));
 
   useEffect(() => { fetchAgents(); }, []);
+  useEffect(() => {
+    paymentApi.getBanks()
+      .then(data => setBanks(data.length > 0 ? data : FALLBACK_BANKS))
+      .catch(() => setBanks(FALLBACK_BANKS));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => fetchAgents(search || undefined), 300);
@@ -37,8 +73,8 @@ export default function AgentManagement() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await adminApi.createAgent({ name: newName, phone: newPhone, password: newPassword, checkpoint: newCheckpoint, location: newLocation, fee: Number(newFee) });
-      setNewName(''); setNewPhone(''); setNewPassword(''); setNewCheckpoint(''); setNewLocation(''); setNewFee('');
+      await adminApi.createAgent({ name: newName, phone: newPhone, password: newPassword, checkpoint: newCheckpoint, location: newLocation, fee: Number(newFee), accountNumber: newAccountNumber, bankCode: newBankCode });
+      setNewName(''); setNewPhone(''); setNewPassword(''); setNewCheckpoint(''); setNewLocation(''); setNewFee(''); setNewAccountNumber(''); setNewBankCode('');
       setShowAddModal(false);
       fetchAgents();
     } catch (err: any) {
@@ -172,6 +208,7 @@ export default function AgentManagement() {
                   { label: 'Login Password', value: newPassword, setter: setNewPassword, placeholder: 'Set login password', icon: Lock, type: 'password' },
                   { label: 'Checkpoint Name', value: newCheckpoint, setter: setNewCheckpoint, placeholder: 'e.g. Ojuelegba Checkpoint', icon: Shield, type: 'text' },
                   { label: 'Location', value: newLocation, setter: setNewLocation, placeholder: 'e.g. Ojuelegba Under Bridge', icon: MapPin, type: 'text' },
+                  { label: 'Account Number', value: newAccountNumber, setter: setNewAccountNumber, placeholder: '0123456789', icon: Building2, type: 'text' },
                 ].map(field => (
                   <div key={field.label}>
                     <label className="block text-sm font-medium text-surface-200/70 mb-2">{field.label}</label>
@@ -181,6 +218,15 @@ export default function AgentManagement() {
                     </div>
                   </div>
                 ))}
+                <div>
+                  <label className="block text-sm font-medium text-surface-200/70 mb-2">Bank</label>
+                  <select value={newBankCode} onChange={(e) => setNewBankCode(e.target.value)} className="input-field" required>
+                    <option value="">Select bank...</option>
+                    {banks.map(b => (
+                      <option key={b.bankCode} value={b.bankCode}>{b.bankName}</option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-surface-200/70 mb-2">Levy Fee (₦)</label>
                   <div className="relative">

@@ -72,7 +72,7 @@ export const adminApi = {
   getAgents: (search?: string) =>
     apiRequest(`/admin/agents${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   getAgent: (id: string) => apiRequest(`/admin/agents/${id}`),
-  createAgent: (data: { name: string; phone: string; password: string; checkpoint: string; location: string; fee: number }) =>
+  createAgent: (data: { name: string; phone: string; password: string; checkpoint: string; location: string; fee: number; accountNumber: string; bankCode: string }) =>
     apiRequest("/admin/agents", { method: "POST", body: JSON.stringify(data) }),
   updateAgentStatus: (id: string, status: string) =>
     apiRequest(`/admin/agents/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),

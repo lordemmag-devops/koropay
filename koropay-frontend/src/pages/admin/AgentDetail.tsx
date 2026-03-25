@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Shield, MapPin, Phone, Wallet, TrendingUp, Calendar, CheckCircle2, XCircle, KeyRound, Clock } from 'lucide-react';
+import { ArrowLeft, Shield, MapPin, Phone, Wallet, TrendingUp, Calendar, CheckCircle2, XCircle, KeyRound, Clock, Building2 } from 'lucide-react';
 import { adminApi } from '../../utils/api';
 
 export default function AgentDetail() {
@@ -55,6 +55,9 @@ export default function AgentDetail() {
               <div className="flex flex-wrap items-center gap-4 mt-1">
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Phone className="w-3.5 h-3.5" /> {agent.user?.phone}</span>
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><MapPin className="w-3.5 h-3.5" /> {agent.location}</span>
+                {agent.accountNumber && (
+                  <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Building2 className="w-3.5 h-3.5" /> {agent.accountNumber} &bull; Bank {agent.bankCode}</span>
+                )}
                 {agent.user?.createdAt && (
                   <span className="flex items-center gap-1.5 text-sm text-surface-200/50">
                     <Calendar className="w-3.5 h-3.5" /> Joined {new Date(agent.user.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -91,6 +94,9 @@ export default function AgentDetail() {
           <div className="space-y-4">
             <div><p className="text-xs text-surface-200/40 mb-1">Checkpoint</p><p className="text-sm font-medium text-white">{agent.checkpoint}</p></div>
             <div><p className="text-xs text-surface-200/40 mb-1">Location</p><p className="text-sm font-medium text-white">{agent.location}</p></div>
+            {agent.accountNumber && (
+              <div><p className="text-xs text-surface-200/40 mb-1">Account Number</p><p className="text-sm font-medium text-white">{agent.accountNumber} &bull; Bank {agent.bankCode}</p></div>
+            )}
             <div><p className="text-xs text-surface-200/40 mb-1">Levy Fee</p><p className="text-lg font-bold bg-gradient-to-r from-emerald-400 to-primary-400 bg-clip-text text-transparent">₦{agent.fee}</p></div>
             <div>
               <p className="text-xs text-surface-200/40 mb-1">Verification Method</p>

@@ -83,6 +83,8 @@ model Agent {
   checkpoint     String
   location       String
   fee            Float
+  accountNumber  String?
+  bankCode       String?
   status         AgentStatus @default(active)
   totalCollected Float       @default(0)
   totalScans     Int         @default(0)
