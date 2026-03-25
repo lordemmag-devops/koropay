@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckCircle2, Wallet, TrendingUp, Clock, Send, KeyRound, Car, AlertCircle, Pencil } from 'lucide-react';
+import { Search, CheckCircle2, Wallet, TrendingUp, Clock, Send, KeyRound, Car, AlertCircle, Settings2 } from 'lucide-react';
 import { agentApi } from '../../utils/api';
 
 export default function AgentDashboard() {
@@ -13,6 +13,8 @@ export default function AgentDashboard() {
   const [justPaid, setJustPaid] = useState<string | null>(null);
   const [editingFee, setEditingFee] = useState(false);
   const [feeInput, setFeeInput] = useState('');
+  const [feeError, setFeeError] = useState('');
+  const [feeSaving, setFeeSaving] = useState(false);
 
   const fetchDashboard = () =>
     agentApi.getDashboard()
@@ -29,12 +31,18 @@ export default function AgentDashboard() {
   const levyFee: number = dashData?.agent?.fee ?? 0;
 
   const handleSaveFee = async () => {
+    if (!feeInput || Number(feeInput) <= 0) { setFeeError('Enter a valid amount'); return; }
+    setFeeSaving(true);
+    setFeeError('');
     try {
       await agentApi.updateFee(Number(feeInput));
       setDashData((prev: any) => ({ ...prev, agent: { ...prev.agent, fee: Number(feeInput) } }));
       setEditingFee(false);
+      setFeeInput('');
     } catch (err: any) {
-      alert(err.message);
+      setFeeError(err.message);
+    } finally {
+      setFeeSaving(false);
     }
   };
 
@@ -110,29 +118,57 @@ export default function AgentDashboard() {
           <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center mb-4">
             <Clock className="w-6 h-6 text-amber-400" />
           </div>
-          {editingFee ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={feeInput}
-                onChange={(e) => setFeeInput(e.target.value)}
-                className="input-field text-lg font-bold w-28 py-1"
-                autoFocus
-              />
-              <button onClick={handleSaveFee} className="btn-primary text-xs px-3 py-1.5">Save</button>
-              <button onClick={() => setEditingFee(false)} className="text-surface-200/40 hover:text-white text-xs">Cancel</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold text-white">{levyFee > 0 ? `₦${levyFee}` : 'Not set'}</p>
-              <button onClick={() => { setFeeInput(String(levyFee || '')); setEditingFee(true); }} className="text-surface-200/30 hover:text-primary-400 transition-colors">
-                <Pencil className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+          <p className="text-2xl font-bold text-white">{levyFee > 0 ? `₦${levyFee.toLocaleString()}` : <span className="text-surface-200/30 text-lg">Not set</span>}</p>
           <p className="text-sm text-surface-200/50 mt-1">Levy Per Driver</p>
         </motion.div>
       </div>
+
+      {/* Levy Fee Card */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }} className="glass-card p-6 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-500/15 flex items-center justify-center">
+              <Settings2 className="w-5 h-5 text-primary-400" />
+            </div>
+            <div>
+              <p className="text-white font-semibold">Levy Fee Setting</p>
+              <p className="text-xs text-surface-200/40">Set the amount charged per driver at this checkpoint</p>
+            </div>
+          </div>
+          {levyFee > 0 && !editingFee && (
+            <span className="text-lg font-bold text-emerald-400">₦{levyFee.toLocaleString()}</span>
+          )}
+        </div>
+        <AnimatePresence mode="wait">
+          {editingFee || levyFee === 0 ? (
+            <motion.div key="edit" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-start gap-3">
+              <div className="flex-1">
+                <input
+                  type="number"
+                  value={feeInput}
+                  onChange={(e) => { setFeeInput(e.target.value); setFeeError(''); }}
+                  placeholder="e.g. 500"
+                  className={`input-field w-full ${feeError ? 'border-rose-500/50' : ''}`}
+                  autoFocus
+                />
+                {feeError && <p className="text-xs text-rose-400 mt-1">{feeError}</p>}
+              </div>
+              <button onClick={handleSaveFee} disabled={feeSaving} className="btn-primary px-6 disabled:opacity-60">
+                {feeSaving ? 'Saving...' : 'Save'}
+              </button>
+              {levyFee > 0 && (
+                <button onClick={() => { setEditingFee(false); setFeeInput(''); setFeeError(''); }} className="px-4 py-2.5 text-sm text-surface-200/40 hover:text-white transition-colors">
+                  Cancel
+                </button>
+              )}
+            </motion.div>
+          ) : (
+            <motion.button key="change" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { setFeeInput(String(levyFee)); setEditingFee(true); }} className="btn-ghost text-sm">
+              Change Fee
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-6">
         <div className="relative max-w-md">
