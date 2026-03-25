@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  driver
+  agent
+}
+
+enum DriverStatus {
+  active
+  offline
+  suspended
+}
+
+enum AgentStatus {
+  active
+  inactive
+}
+
+enum TripStatus {
+  ongoing
+  completed
+}
+
+enum PaymentStatus {
+  completed
+  pending
+  failed
+}
+
+enum TransactionType {
+  passenger_payment
+  union_payment
+}
+
+enum LevyPaymentStatus {
+  pending
+  paid
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  password     String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  driver       Driver?
+  agent        Agent?
+}
+
+model Driver {
+  id            String       @id @default(cuid())
+  userId        String       @unique
+  vehiclePlate  String       @unique
+  route         String
+  status        DriverStatus @default(active)
+  totalEarnings Float        @default(0)
+  totalTrips    Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routes        Route[]
+  trips         Trip[]
+  unionPayments UnionPayment[]
+}
+
+model Agent {
+  id             String      @id @default(cuid())
+  userId         String      @unique
+  checkpoint     String
+  location       String
+  fee            Float
+  status         AgentStatus @default(active)
+  totalCollected Float       @default(0)
+  totalScans     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unionPayments  UnionPayment[]
+}
+
+model Route {
+  id         String      @id @default(cuid())
+  driverId   String
+  routeName  String
+  fare       Float
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  driver     Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  dropPoints DropPoint[]
+  trips      Trip[]
+}
+
+model DropPoint {
+  id      String @id @default(cuid())
+  routeId String
+  name    String
+
+  route   Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+}
+
+model Trip {
+  id               String        @id @default(cuid())
+  driverId         String
+  routeId          String
+  fare             Float
+  totalPassengers  Int           @default(0)
+  totalAmount      Float         @default(0)
+  totalLevies      Float         @default(0)
+  status           TripStatus    @default(ongoing)
+  startTime        DateTime      @default(now())
+  endTime          DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  driver           Driver        @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  route            Route         @relation(fields: [routeId], references: [id])
+  payments         TripPayment[]
+  transactions     Transaction[]
+}
+
+model TripPayment {
+  id              String        @id @default(cuid())
+  tripId          String
+  passengerName   String
+  passengerPhone  String
+  amount          Float
+  dropPoint       String?
+  status          PaymentStatus @default(completed)
+  interswitchRef  String?
+  paymentChannel  String?
+  timestamp       DateTime      @default(now())
+
+  trip            Trip          @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  tripId         String?
+  passengerName  String
+  amount         Float
+  type           TransactionType
+  status         PaymentStatus   @default(completed)
+  dropPoint      String?
+  interswitchRef String?
+  paymentChannel String?
+  timestamp      DateTime        @default(now())
+
+  trip           Trip?           @relation(fields: [tripId], references: [id])
+}
+
+model LevySetting {
+  id        String   @id @default(cuid())
+  levyName  String
+  amount    Float
+  location  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UnionPayment {
+  id             String            @id @default(cuid())
+  driverId       String
+  agentId        String
+  levyName       String
+  amount         Float
+  status         LevyPaymentStatus @default(pending)
+  otp            String?
+  interswitchRef String?
+  paymentChannel String?
+  timestamp      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  driver         Driver            @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  agent          Agent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+}
