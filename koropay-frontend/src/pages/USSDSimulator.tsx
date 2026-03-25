@@ -1,24 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { mockRoutes } from '../data/mock';
 import { paymentApi } from '../utils/api';
 import type { USSDStep, DropPoint } from '../types';
 
+// Default bank code used for demo — in production this comes from the telecom USSD session
+const DEMO_BANK_CODE = '044'; // Access Bank
+
 export default function USSDSimulator() {
   const [step, setStep] = useState<USSDStep>('idle');
   const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
   const [selectedDrop, setSelectedDrop] = useState<DropPoint | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [passengerBankCode, setPassengerBankCode] = useState('');
-  const [banks, setBanks] = useState<{ bankCode: string; bankName: string }[]>([]);
   const [resolvedName, setResolvedName] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    paymentApi.getBanks().then(setBanks).catch(console.error);
-  }, []);
 
   const activeRoute = mockRoutes.find(r => r.id === selectedRoute);
 
@@ -27,7 +24,6 @@ export default function USSDSimulator() {
     setSelectedRoute(null);
     setSelectedDrop(null);
     setPhoneNumber('');
-    setPassengerBankCode('');
     setResolvedName('');
     setPaymentRef('');
     setError('');
@@ -64,9 +60,9 @@ export default function USSDSimulator() {
     setStep('processing');
     try {
       const result = await paymentApi.initiateUssdPayment({
-        tripId: activeRoute!.id, // in real USSD this comes from the active trip
+        tripId: activeRoute!.id,
         passengerPhone: phoneNumber,
-        passengerBankCode,
+        passengerBankCode: DEMO_BANK_CODE,
         dropPoint: selectedDrop?.name,
       });
       setResolvedName(result.passengerName);
@@ -101,23 +97,13 @@ export default function USSDSimulator() {
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="*384*772#"
-                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all mb-3"
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all"
               />
-              <select
-                value={passengerBankCode}
-                onChange={(e) => setPassengerBankCode(e.target.value)}
-                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-primary-500/50 transition-all"
-              >
-                <option value="">Select your bank...</option>
-                {banks.map(b => (
-                  <option key={b.bankCode} value={b.bankCode}>{b.bankName}</option>
-                ))}
-              </select>
             </div>
             <div className="p-4">
               <button
                 onClick={handleDial}
-                disabled={!phoneNumber.trim() || !passengerBankCode}
+                disabled={!phoneNumber.trim()}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 Dial
