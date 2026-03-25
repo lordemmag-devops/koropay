@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../../config/prisma';
 import { AuthRequest } from '../../types';
+import { sendSafetoken } from '../payment/payment.controller';
 
 const getDriverId = async (userId: string): Promise<string | null> => {
   const driver = await prisma.driver.findUnique({ where: { userId } });
@@ -182,18 +183,21 @@ export const requestLevyPayment = async (req: AuthRequest, res: Response): Promi
 
   const levy = await prisma.unionPayment.findFirst({
     where: { id: String(req.params.id), driverId, status: 'pending' },
+    include: { driver: { include: { user: { select: { phone: true } } } } },
   });
   if (!levy) { res.status(404).json({ message: 'Pending levy not found' }); return; }
 
-  const otp = String(Math.floor(1000 + Math.random() * 9000));
+  const driver = levy.driver;
 
-  const updated = await prisma.unionPayment.update({
-    where: { id: levy.id },
-    data: { otp },
-  });
-
-  // In production: send OTP via SMS. For now return it in response.
-  res.json({ message: 'OTP generated', otp: updated.otp, levyId: updated.id });
+  try {
+    await sendSafetoken(driver!.user!.phone);
+    await prisma.unionPayment.update({ where: { id: levy.id }, data: { otp: 'sent' } });
+    res.json({ message: 'OTP sent to driver via SMS', levyId: levy.id });
+  } catch {
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    const updated = await prisma.unionPayment.update({ where: { id: levy.id }, data: { otp } });
+    res.json({ message: 'OTP generated (SMS fallback)', otp: updated.otp, levyId: updated.id });
+  }
 };
 
 export const verifyLevyOTP = async (req: AuthRequest, res: Response): Promise<void> => {

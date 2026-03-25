@@ -3,32 +3,16 @@ import prisma from '../../config/prisma';
 import { interswitchClient } from '../../config/interswitch';
 import { AuthRequest } from '../../types';
 
-// ─── Initiate Payment ─────────────────────────────────────────────────────────
+// ─── Send OTP via Interswitch Safetoken ──────────────────────────────────────
 
-export const initiatePayment = async (req: AuthRequest, res: Response): Promise<void> => {
-  const { amount, customerId, customerEmail, description, redirectUrl } = req.body;
-
-  try {
-    const client = await interswitchClient();
-    const { data } = await client.post('/api/v2/purchases', {
-      merchantCode: process.env.INTERSWITCH_MERCHANT_CODE,
-      payableCode: process.env.INTERSWITCH_PAYABLE_CODE,
-      amount: Math.round(Number(amount) * 100), // convert to kobo
-      redirectUrl,
-      customerId,
-      customerEmail,
-      description,
-      currency: 'NGN',
-    });
-
-    res.status(201).json({
-      transactionRef: data.transactionReference,
-      paymentUrl: data.redirectUrl || data.checkoutUrl,
-      raw: data,
-    });
-  } catch (err: any) {
-    res.status(502).json({ message: 'Payment initiation failed', error: err?.response?.data || err.message });
-  }
+export const sendSafetoken = async (phone: string): Promise<string> => {
+  const client = await interswitchClient();
+  const { data } = await client.post('/api/v1/safetoken/generate-and-send', {
+    customerId: phone,
+    mobileNumber: phone,
+    notificationMethod: 'SMS',
+  });
+  return data.otp || data.token || '';
 };
 
 // ─── Verify Transaction ───────────────────────────────────────────────────────
@@ -42,16 +26,13 @@ export const verifyTransaction = async (req: Request, res: Response): Promise<vo
       `/api/v1/purchases?transactionReference=${transactionRef}&amount=0`
     );
 
-    const isSuccessful = data.responseCode === '00';
-
     res.json({
-      success: isSuccessful,
+      success: data.responseCode === '00',
       responseCode: data.responseCode,
       responseDescription: data.responseDescription,
-      amount: data.amount / 100, // convert back from kobo
+      amount: data.amount / 100,
       transactionRef: data.transactionReference,
       paymentChannel: data.paymentInstrumentType || 'card',
-      raw: data,
     });
   } catch (err: any) {
     res.status(502).json({ message: 'Transaction verification failed', error: err?.response?.data || err.message });

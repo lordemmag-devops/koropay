@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { initiatePayment, verifyTransaction, confirmTripPayment, confirmLevyPayment } from './payment.controller';
+import { verifyTransaction, confirmTripPayment, confirmLevyPayment } from './payment.controller';
 
 const router = Router();
 
@@ -10,38 +10,6 @@ const router = Router();
  *   name: Payment
  *   description: Interswitch payment endpoints
  */
-
-/**
- * @openapi
- * /payment/initiate:
- *   post:
- *     tags: [Payment]
- *     summary: Initiate an Interswitch payment
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [amount, customerId, customerEmail, redirectUrl]
- *             properties:
- *               amount:
- *                 type: number
- *               customerId:
- *                 type: string
- *               customerEmail:
- *                 type: string
- *               description:
- *                 type: string
- *               redirectUrl:
- *                 type: string
- *     responses:
- *       201:
- *         description: Payment initiated, returns paymentUrl
- *       502:
- *         description: Interswitch error
- */
-router.post('/initiate', authenticate, initiatePayment);
 
 /**
  * @openapi

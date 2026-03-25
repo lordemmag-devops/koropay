@@ -1,198 +1,109 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Play, Square, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-
-
-interface Route {
-  id: string;
-  routeName: string;
-  fare: number;
-}
-
-interface TripData {
-  id: string;
-  route?: {
-    routeName: string;
-  };
-  fare: number;
-  totalPassengers: number;
-  totalAmount: number;
-}
-
-const API_BASE = "http://localhost:5000/api";
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Play,
+  Square,
+  Clock,
+  Users,
+  Wallet,
+  CheckCircle2,
+  ArrowRight,
+} from 'lucide-react';
+import { mockRoutes } from '../data/mock';
+import type { TripPayment } from '../types';
 
 const simulatedPassengers = [
-  { name: "Adebayo Ogunlesi", phone: "08011112222", drop: "Yaba Bus Stop" },
-  { name: "Chioma Eze", phone: "08033334444", drop: "Tejuosho Market" },
-  { name: "Fatima Abubakar", phone: "08055556666", drop: "Lawanson Junction" },
+  { name: 'Adebayo Ogunlesi', phone: '08011112222', drop: 'Yaba Bus Stop' },
+  { name: 'Chioma Eze', phone: '08033334444', drop: 'Tejuosho Market' },
+  { name: 'Fatima Abubakar', phone: '08055556666', drop: 'Lawanson Junction' },
+  { name: 'Emeka Obi', phone: '08077778888' },
+  { name: 'Amina Yusuf', phone: '08099990000', drop: 'Yaba Bus Stop' },
+  { name: 'Segun Adeyemi', phone: '08012340001' },
+  { name: 'Hauwa Bello', phone: '08012340002', drop: 'Tejuosho Market' },
 ];
 
-type TripState = "idle" | "active" | "summary";
+type TripState = 'idle' | 'active' | 'summary';
 
 export default function Trip() {
-  const { user } = useAuth();
-  const [state, setState] = useState<TripState>("idle");
-  const [routes, setRoutes] = useState<Route[]>([]); // Replaced any[]
-  const [selectedRouteId, setSelectedRouteId] = useState("");
-  const [activeTrip, setActiveTrip] = useState<TripData | null>(null); // Replaced any
-  const [payments, setPayments] = useState<any[]>([]);
+  const [state, setState] = useState<TripState>('idle');
+  const [selectedRouteId, setSelectedRouteId] = useState('');
+  const [payments, setPayments] = useState<TripPayment[]>([]);
   const [elapsed, setElapsed] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [_passengerIndex, setPassengerIndex] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const paymentRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // FIX: Use 'number' for browser-based timers instead of NodeJS.Timeout
-  const timerRef = useRef<number | null>(null);
-  const paymentRef = useRef<number | null>(null);
-
-  const activeTripRef = useRef<TripData | null>(null); // Replaced any
+  const selectedRoute = mockRoutes.find(r => r.id === selectedRouteId);
 
   useEffect(() => {
-    activeTripRef.current = activeTrip;
-  }, [activeTrip]);
-
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/driver/routes`, {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
-        const data = await res.json();
-        setRoutes(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to fetch routes", err);
-      }
-    };
-    if (user?.token) fetchRoutes();
-  }, [user]);
-
-  useEffect(() => {
+    if (state === 'active') {
+      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+      scheduleNextPayment();
+    }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (paymentRef.current) clearTimeout(paymentRef.current);
     };
-  }, []);
+  }, [state]);
 
-  const scheduleNextPayment = useCallback(
-    (index: number) => {
-      if (index >= simulatedPassengers.length) return;
-
-      // window.setTimeout ensures the return type is a number
-      paymentRef.current = window.setTimeout(async () => {
-        const p = simulatedPassengers[index];
-        const currentTripId = activeTripRef.current?.id;
-
-        if (!currentTripId) return;
-
-        try {
-          const res = await fetch(
-            `${API_BASE}/driver/trips/${currentTripId}/payments`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${user?.token}`,
-              },
-              body: JSON.stringify({
-                passengerName: p.name,
-                passengerPhone: p.phone,
-                dropPoint: p.drop || "General",
-              }),
-            },
-          );
-
-          const newPayment = await res.json();
-          if (res.ok) {
-            setPayments((prev) => [newPayment, ...prev]);
-
-            setActiveTrip((prev: TripData | null) => {
-              if (!prev) return null;
-              return {
-                ...prev,
-                totalPassengers: (prev.totalPassengers || 0) + 1,
-                totalAmount: (prev.totalAmount || 0) + (prev.fare || 0),
-              };
-            });
-
-            scheduleNextPayment(index + 1);
+  const scheduleNextPayment = () => {
+    const delay = 3000 + Math.random() * 5000;
+    paymentRef.current = setTimeout(() => {
+      setPassengerIndex(prev => {
+        const idx = prev;
+        if (idx < simulatedPassengers.length) {
+          const p = simulatedPassengers[idx];
+          const newPayment: TripPayment = {
+            id: `pay-${Date.now()}`,
+            passengerName: p.name,
+            passengerPhone: p.phone,
+            amount: selectedRoute?.fare ?? 300,
+            dropPoint: p.drop,
+            status: 'completed',
+            timestamp: new Date().toISOString(),
+          };
+          setPayments(prev => [newPayment, ...prev]);
+          if (idx + 1 < simulatedPassengers.length) {
+            scheduleNextPayment();
           }
-        } catch (err) {
-          console.error("Payment failed", err);
         }
-      }, 5000);
-    },
-    [user?.token],
-  );
-
-  const handleStart = async () => {
-    if (!selectedRouteId) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/driver/trips`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${user?.token}`,
-        },
-        body: JSON.stringify({ routeId: selectedRouteId }),
+        return idx + 1;
       });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Failed to start trip");
-
-      setActiveTrip(data);
-      setPayments([]);
-      setElapsed(0);
-      setState("active");
-
-      if (timerRef.current) clearInterval(timerRef.current);
-      // window.setInterval ensures the return type is a number
-      timerRef.current = window.setInterval(
-        () => setElapsed((e) => e + 1),
-        1000,
-      );
-
-      scheduleNextPayment(0);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+    }, delay);
   };
 
-  const handleEnd = async () => {
-    if (!activeTrip?.id) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/driver/trips/${activeTrip.id}/end`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
-      const data = await res.json();
+  const handleStart = () => {
+    if (!selectedRouteId) return;
+    setPayments([]);
+    setElapsed(0);
+    setPassengerIndex(0);
+    setState('active');
+  };
 
-      if (res.ok) {
-        setActiveTrip(data);
-        setState("summary");
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (paymentRef.current) clearTimeout(paymentRef.current);
-      } else {
-        throw new Error(data.message || "Failed to end trip");
-      }
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleEnd = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (paymentRef.current) clearTimeout(paymentRef.current);
+    setState('summary');
+  };
+
+  const handleReset = () => {
+    setState('idle');
+    setPayments([]);
+    setElapsed(0);
+    setPassengerIndex(0);
+    setSelectedRouteId('');
   };
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
-    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+    return `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
+
+  const totalAmount = payments.reduce((s, p) => s + p.amount, 0);
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Design and JSX remain identical to your original code */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -200,129 +111,232 @@ export default function Trip() {
       >
         <h1 className="text-3xl font-bold text-white mb-1">Trip</h1>
         <p className="text-surface-200/60">
-          {state === "idle"
-            ? "Start a new trip"
-            : state === "active"
-              ? "Trip in progress"
-              : "Trip summary"}
+          {state === 'idle' ? 'Start a new trip' : state === 'active' ? 'Trip in progress' : 'Trip summary'}
         </p>
       </motion.div>
 
       <AnimatePresence mode="wait">
-        {state === "idle" && (
-          <motion.div key="idle" className="max-w-lg mx-auto">
-            <div className="glass-card p-8 text-center">
+        {/* IDLE — Start trip form */}
+        {state === 'idle' && (
+          <motion.div
+            key="idle"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-lg mx-auto"
+          >
+            <div className="glass-card p-8">
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 flex items-center justify-center mx-auto mb-6">
                 <Play className="w-7 h-7 text-emerald-400" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-6">
-                Start New Trip
-              </h2>
-              <select
-                value={selectedRouteId}
-                onChange={(e) => setSelectedRouteId(e.target.value)}
-                className="input-field mb-6"
-              >
-                <option value="">Choose a route...</option>
-                {routes.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.routeName} — ₦{r.fare}
-                  </option>
-                ))}
-              </select>
+              <h2 className="text-xl font-bold text-white text-center mb-6">Start New Trip</h2>
+
+              <div className="mb-5">
+                <label className="block text-sm font-medium text-surface-200/70 mb-2">Select Route</label>
+                <select
+                  value={selectedRouteId}
+                  onChange={(e) => setSelectedRouteId(e.target.value)}
+                  className="input-field"
+                >
+                  <option value="">Choose a route...</option>
+                  {mockRoutes.map(r => (
+                    <option key={r.id} value={r.id}>{r.routeName} — ₦{r.fare}</option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedRoute && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.08] mb-6"
+                >
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-surface-200/50">Route</span>
+                    <span className="text-sm text-white font-medium">{selectedRoute.routeName}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm text-surface-200/50">Fixed Fare</span>
+                    <span className="text-lg font-bold text-emerald-400">₦{selectedRoute.fare}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-surface-200/50">Drop Points</span>
+                    <span className="text-sm text-surface-200/60">{selectedRoute.dropPoints.length} stops</span>
+                  </div>
+                </motion.div>
+              )}
+
               <button
                 onClick={handleStart}
-                disabled={!selectedRouteId || loading}
-                className="w-full btn-primary py-3.5 flex items-center justify-center gap-2"
+                disabled={!selectedRouteId}
+                className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {loading ? (
-                  <Loader2 className="animate-spin w-5 h-5" />
-                ) : (
-                  <Play className="w-5 h-5" />
-                )}{" "}
-                Start Trip
+                <Play className="w-5 h-5" /> Start Trip
               </button>
             </div>
           </motion.div>
         )}
 
-        {state === "active" && (
-          <motion.div key="active">
+        {/* ACTIVE — Trip in progress */}
+        {state === 'active' && (
+          <motion.div
+            key="active"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            {/* Trip header */}
             <div className="glass-card p-6 mb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-sm font-medium text-emerald-400">
-                      Trip in Progress
-                    </span>
+                    <span className="text-sm font-medium text-emerald-400">Trip in Progress</span>
                   </div>
-                  <h2 className="text-xl font-bold text-white">
-                    {activeTrip?.route?.routeName || "Active Route"}
-                  </h2>
+                  <h2 className="text-xl font-bold text-white">{selectedRoute?.routeName}</h2>
+                  <p className="text-sm text-surface-200/40 mt-0.5">Fare: ₦{selectedRoute?.fare} per passenger</p>
                 </div>
                 <div className="flex items-center gap-6">
                   <div className="text-center">
-                    <p className="text-2xl font-bold font-mono text-white">
-                      {formatTime(elapsed)}
-                    </p>
+                    <p className="text-2xl font-bold font-mono text-white">{formatTime(elapsed)}</p>
                     <p className="text-xs text-surface-200/40">Elapsed</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-white">
-                      {activeTrip?.totalPassengers || 0}
-                    </p>
+                    <p className="text-2xl font-bold text-white">{payments.length}</p>
                     <p className="text-xs text-surface-200/40">Passengers</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-emerald-400">₦{totalAmount.toLocaleString()}</p>
+                    <p className="text-xs text-surface-200/40">Collected</p>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Real-time payments */}
+            <div className="glass-card overflow-hidden mb-6">
+              <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Live Payments</h3>
+                  <p className="text-sm text-surface-200/40 mt-0.5">Passengers paying in real-time</p>
+                </div>
+                <span className="badge-success">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5" /> Live
+                </span>
+              </div>
+              <div className="divide-y divide-white/[0.04]">
+                {payments.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <Clock className="w-8 h-8 text-surface-200/15 mx-auto mb-2" />
+                    <p className="text-sm text-surface-200/40">Waiting for passengers...</p>
+                  </div>
+                ) : (
+                  payments.map((p) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0, x: -30, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+                      animate={{ opacity: 1, x: 0, backgroundColor: 'transparent' }}
+                      transition={{ duration: 0.5 }}
+                      className="px-6 py-4 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center text-xs font-bold text-emerald-400">
+                          {p.passengerName.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-white">{p.passengerName}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-surface-200/40">{p.passengerPhone}</span>
+                            {p.dropPoint && (
+                              <>
+                                <span className="text-xs text-surface-200/20">•</span>
+                                <span className="text-xs text-surface-200/40">{p.dropPoint}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-emerald-400">₦{p.amount}</p>
+                        <span className="badge-success text-[10px]">
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> Paid
+                        </span>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* End Trip button */}
             <button
               onClick={handleEnd}
-              disabled={loading}
-              className="w-full py-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-4 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 font-bold hover:bg-rose-500/25 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Square className="w-5 h-5" />
-              )}{" "}
-              End Trip
+              <Square className="w-5 h-5" /> End Trip
             </button>
           </motion.div>
         )}
 
-        {state === "summary" && (
-          <motion.div key="summary" className="max-w-2xl mx-auto">
-            <div className="glass-card p-8 text-center">
-              <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white">Trip Complete!</h2>
-              <div className="grid grid-cols-3 gap-4 my-8">
-                <div className="bg-white/[0.04] p-4 rounded-xl">
-                  <p className="text-xl font-bold text-white">
-                    {activeTrip?.totalPassengers || 0}
-                  </p>
+        {/* SUMMARY */}
+        {state === 'summary' && (
+          <motion.div
+            key="summary"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="max-w-2xl mx-auto"
+          >
+            <div className="glass-card p-8">
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4"
+                >
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                </motion.div>
+                <h2 className="text-2xl font-bold text-white">Trip Complete!</h2>
+                <p className="text-sm text-surface-200/50 mt-1">{selectedRoute?.routeName}</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className="text-center p-4 rounded-xl bg-white/[0.04]">
+                  <Users className="w-5 h-5 text-primary-400 mx-auto mb-2" />
+                  <p className="text-xl font-bold text-white">{payments.length}</p>
                   <p className="text-xs text-surface-200/40">Passengers</p>
                 </div>
-                <div className="bg-white/[0.04] p-4 rounded-xl">
-                  <p className="text-xl font-bold text-emerald-400">
-                    ₦{activeTrip?.totalAmount || 0}
-                  </p>
+                <div className="text-center p-4 rounded-xl bg-white/[0.04]">
+                  <Wallet className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
+                  <p className="text-xl font-bold text-emerald-400">₦{totalAmount.toLocaleString()}</p>
                   <p className="text-xs text-surface-200/40">Total Earned</p>
                 </div>
-                <div className="bg-white/[0.04] p-4 rounded-xl">
-                  <p className="text-xl font-bold text-white">
-                    {formatTime(elapsed)}
-                  </p>
+                <div className="text-center p-4 rounded-xl bg-white/[0.04]">
+                  <Clock className="w-5 h-5 text-amber-400 mx-auto mb-2" />
+                  <p className="text-xl font-bold text-white">{formatTime(elapsed)}</p>
                   <p className="text-xs text-surface-200/40">Duration</p>
                 </div>
               </div>
+
+              {/* Payment recap */}
+              <div className="space-y-2 mb-8">
+                <p className="text-sm font-medium text-surface-200/50 mb-3">Passengers</p>
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-sm text-white">{p.passengerName}</span>
+                      {p.dropPoint && <span className="text-xs text-surface-200/30">• {p.dropPoint}</span>}
+                    </div>
+                    <span className="text-sm font-semibold text-white">₦{p.amount}</span>
+                  </div>
+                ))}
+              </div>
+
               <button
-                onClick={() => {
-                  setState("idle");
-                  setSelectedRouteId("");
-                }}
-                className="w-full btn-primary py-3.5 flex items-center justify-center gap-2"
+                onClick={handleReset}
+                className="w-full btn-primary flex items-center justify-center gap-2 py-3.5"
               >
                 Start Another Trip <ArrowRight className="w-4 h-4" />
               </button>

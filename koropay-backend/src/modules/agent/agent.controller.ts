@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../../config/prisma';
 import { AuthRequest } from '../../types';
+import { sendSafetoken } from '../payment/payment.controller';
 
 const getAgentId = async (userId: string): Promise<string | null> => {
   const agent = await prisma.agent.findUnique({ where: { userId } });
@@ -70,8 +71,6 @@ export const requestPayment = async (req: AuthRequest, res: Response): Promise<v
   });
   if (alreadyPaid) { res.status(400).json({ message: 'Driver already paid today' }); return; }
 
-  const otp = String(Math.floor(1000 + Math.random() * 9000));
-
   const payment = await prisma.unionPayment.create({
     data: {
       driverId,
@@ -79,12 +78,18 @@ export const requestPayment = async (req: AuthRequest, res: Response): Promise<v
       levyName: agent.checkpoint,
       amount: agent.fee,
       status: 'pending',
-      otp,
     },
   });
 
-  // In production: send OTP via SMS to driver.user.phone
-  res.status(201).json({ message: 'OTP sent to driver', otp, paymentId: payment.id });
+  try {
+    await sendSafetoken(driver.user.phone);
+    await prisma.unionPayment.update({ where: { id: payment.id }, data: { otp: 'sent' } });
+    res.status(201).json({ message: 'OTP sent to driver via SMS', paymentId: payment.id });
+  } catch {
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    await prisma.unionPayment.update({ where: { id: payment.id }, data: { otp } });
+    res.status(201).json({ message: 'OTP generated (SMS fallback)', otp, paymentId: payment.id });
+  }
 };
 
 // ─── Verify OTP & Mark Paid ───────────────────────────────────────────────────

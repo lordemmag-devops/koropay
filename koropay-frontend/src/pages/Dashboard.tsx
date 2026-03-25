@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   MapPin,
   Play,
@@ -10,105 +9,55 @@ import {
   CheckCircle2,
   Clock,
   Users,
-  Loader2,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+} from 'lucide-react';
+import { mockTrips, todayStats, mockUnionPayments } from '../data/mock';
 
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
-const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const pendingLevies = mockUnionPayments.filter(p => p.status === 'pending').length;
 
-  const fetchDashboard = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch("http://localhost:5000/api/driver/dashboard", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
-      if (!res.ok) throw new Error("Failed to connect to server");
-      const result = await res.json();
-      setData(result);
-    } catch (err) {
-      console.error("Failed to fetch dashboard", err);
-      setError("Unable to load dashboard data. Please check your connection.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.token) fetchDashboard();
-  }, [user]);
-
-  if (loading)
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    );
-
-  // Error State UI
-  if (error)
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center mb-4">
-          <AlertCircle className="w-8 h-8 text-rose-500" />
-        </div>
-        <h2 className="text-xl font-bold text-white mb-2">Connection Error</h2>
-        <p className="text-surface-200/50 max-w-xs mb-6">{error}</p>
-        <button
-          onClick={fetchDashboard}
-          className="btn-primary flex items-center gap-2 py-2 px-6"
-        >
-          <RefreshCw className="w-4 h-4" /> Retry
-        </button>
-      </div>
-    );
-
-  const pendingLevies = data?.pendingLevies || 0;
   const actionCards = [
     {
-      title: "Set Route",
-      desc: "Define your route and fare",
+      title: 'Set Route',
+      desc: 'Define your route and fare',
       icon: MapPin,
-      color: "from-primary-400/20 to-primary-600/20",
-      iconColor: "text-primary-400",
-      path: "/driver/routes",
+      color: 'from-primary-400/20 to-primary-600/20',
+      iconColor: 'text-primary-400',
+      path: '/driver/routes',
     },
     {
-      title: "Start Trip",
-      desc: "Begin a new trip",
+      title: 'Start Trip',
+      desc: 'Begin a new trip',
       icon: Play,
-      color: "from-emerald-400/20 to-emerald-600/20",
-      iconColor: "text-emerald-400",
-      path: "/driver/trip",
+      color: 'from-emerald-400/20 to-emerald-600/20',
+      iconColor: 'text-emerald-400',
+      path: '/driver/trip',
     },
     {
-      title: "Earnings",
-      desc: `₦${(data?.totalEarnings || 0).toLocaleString()} today`,
+      title: 'Earnings',
+      desc: `₦${todayStats.totalEarnings.toLocaleString()} today`,
       icon: Wallet,
-      color: "from-amber-400/20 to-amber-600/20",
-      iconColor: "text-amber-400",
-      path: "/driver/earnings",
+      color: 'from-amber-400/20 to-amber-600/20',
+      iconColor: 'text-amber-400',
+      path: '/driver/earnings',
     },
     {
-      title: "Levies",
-      desc: pendingLevies > 0 ? `${pendingLevies} pending` : "All paid",
+      title: 'Levies',
+      desc: pendingLevies > 0 ? `${pendingLevies} pending` : 'All paid',
       icon: Shield,
-      color: "from-rose-400/20 to-rose-600/20",
-      iconColor: "text-rose-400",
-      path: "/driver/levies",
+      color: 'from-rose-400/20 to-rose-600/20',
+      iconColor: 'text-rose-400',
+      path: '/driver/levies',
       badge: pendingLevies > 0 ? pendingLevies : undefined,
     },
   ];
@@ -122,15 +71,11 @@ export default function Dashboard() {
       >
         <h1 className="text-3xl font-bold text-white mb-1">Driver Dashboard</h1>
         <p className="text-surface-200/60">
-          {new Date().toLocaleDateString("en-NG", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {new Date().toLocaleDateString('en-NG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </motion.div>
 
+      {/* 4 Action Cards */}
       <motion.div
         variants={container}
         initial="hidden"
@@ -146,18 +91,12 @@ export default function Dashboard() {
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
-                <div
-                  className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center group-hover:scale-110 transition-transform`}
-                >
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${card.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                   <card.icon className={`w-6 h-6 ${card.iconColor}`} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    {card.title}
-                  </h3>
-                  <p className="text-sm text-surface-200/50 mt-0.5">
-                    {card.desc}
-                  </p>
+                  <h3 className="text-lg font-semibold text-white">{card.title}</h3>
+                  <p className="text-sm text-surface-200/50 mt-0.5">{card.desc}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -173,6 +112,7 @@ export default function Dashboard() {
         ))}
       </motion.div>
 
+      {/* Today's Summary */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -181,98 +121,70 @@ export default function Dashboard() {
       >
         <div className="glass-card p-4 text-center">
           <Wallet className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">
-            ₦{(data?.totalEarnings || 0).toLocaleString()}
-          </p>
+          <p className="text-xl font-bold text-white">₦{todayStats.totalEarnings.toLocaleString()}</p>
           <p className="text-xs text-surface-200/40">Today's Earnings</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Play className="w-5 h-5 text-primary-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">
-            {data?.totalTrips || 0}
-          </p>
+          <p className="text-xl font-bold text-white">{todayStats.totalTrips}</p>
           <p className="text-xs text-surface-200/40">Trips Today</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Users className="w-5 h-5 text-amber-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">
-            {data?.totalPassengers || 0}
-          </p>
+          <p className="text-xl font-bold text-white">{todayStats.totalPassengers}</p>
           <p className="text-xs text-surface-200/40">Passengers</p>
         </div>
         <div className="glass-card p-4 text-center">
           <Shield className="w-5 h-5 text-rose-400 mx-auto mb-2" />
-          <p className="text-xl font-bold text-white">
-            ₦{(data?.driver?.totalEarnings || 0).toLocaleString()}
-          </p>
-          <p className="text-xs text-surface-200/40">Lifetime Total</p>
+          <p className="text-xl font-bold text-white">₦{todayStats.unionPayments.toLocaleString()}</p>
+          <p className="text-xs text-surface-200/40">Levies Paid</p>
         </div>
       </motion.div>
 
+      {/* Recent Trips */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
         className="glass-card overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Recent Trips</h2>
-            <p className="text-sm text-surface-200/50 mt-0.5">
-              Your trip history today
-            </p>
-          </div>
+        <div className="px-6 py-5 border-b border-white/[0.06]">
+          <h2 className="text-lg font-semibold text-white">Recent Trips</h2>
+          <p className="text-sm text-surface-200/50 mt-0.5">Your trip history today</p>
         </div>
         <div className="divide-y divide-white/[0.04]">
-          {data?.trips?.length > 0 ? (
-            data.trips.map((trip: any, i: number) => (
-              <motion.div
-                key={trip.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + i * 0.05 }}
-                className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-emerald-500/20 flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-primary-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      {trip.route?.routeName}
-                    </p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="flex items-center gap-1 text-xs text-surface-200/40">
-                        <Users className="w-3 h-3" /> {trip.totalPassengers}{" "}
-                        passengers
-                      </span>
-                      <span className="flex items-center gap-1 text-xs text-surface-200/40">
-                        <Clock className="w-3 h-3" />{" "}
-                        {new Date(trip.startTime).toLocaleTimeString("en-NG", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
+          {mockTrips.map((trip, i) => (
+            <motion.div
+              key={trip.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 + i * 0.05 }}
+              className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500/20 to-emerald-500/20 flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-primary-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-white">{trip.route}</p>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <span className="flex items-center gap-1 text-xs text-surface-200/40">
+                      <Users className="w-3 h-3" /> {trip.totalPassengers} passengers
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-surface-200/40">
+                      <Clock className="w-3 h-3" /> {new Date(trip.startTime).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-emerald-400">
-                    ₦{trip.totalAmount.toLocaleString()}
-                  </p>
-                  <span className="badge-success text-[10px]">
-                    <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />{" "}
-                    {trip.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-            <div className="p-12 text-center">
-              <Clock className="w-12 h-12 text-surface-200/10 mx-auto mb-3" />
-              <p className="text-surface-200/40">No trips recorded today.</p>
-            </div>
-          )}
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-bold text-emerald-400">₦{trip.totalAmount.toLocaleString()}</p>
+                <span className="badge-success text-[10px]">
+                  <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> Completed
+                </span>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </motion.div>
     </div>

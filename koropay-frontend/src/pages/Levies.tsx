@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
   Wallet,
@@ -7,119 +7,45 @@ import {
   CheckCircle2,
   Clock,
   KeyRound,
-  Loader2,
-} from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+} from 'lucide-react';
+import { mockUnionPayments } from '../data/mock';
+import type { UnionPayment } from '../types';
 
-// Define strict interfaces to resolve 'any' errors and ensure type safety
-interface LevyPayment {
-  id: string;
-  levyName: string;
-  amount: number;
-  status: "pending" | "paid";
-  timestamp: string;
-  agent: {
-    user: {
-      name: string;
-    };
-  };
+function generateOTP() {
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 export default function Levies() {
-  const { user } = useAuth();
-  const [payments, setPayments] = useState<LevyPayment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeOtpId, setActiveOtpId] = useState<string | null>(null);
-  const [otpInput, setOtpInput] = useState("");
+  const [payments, setPayments] = useState<UnionPayment[]>(mockUnionPayments);
+  const [activeOtp, setActiveOtp] = useState<{ id: string; otp: string } | null>(null);
+  const [otpInput, setOtpInput] = useState('');
   const [otpError, setOtpError] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  const fetchLevies = async () => {
-    try {
-      const res = await fetch("http://localhost:5000/api/driver/levies", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
-      const data = await res.json();
-      setPayments(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed to fetch levies:", err);
-    } finally {
-      setLoading(false);
-    }
+  const paidPayments = payments.filter(p => p.status === 'paid');
+  const pendingPayments = payments.filter(p => p.status === 'pending');
+  const totalPaid = paidPayments.reduce((s, p) => s + p.amount, 0);
+
+  const handlePayNow = (id: string) => {
+    const otp = generateOTP();
+    setActiveOtp({ id, otp });
+    setOtpInput('');
+    setOtpError(false);
   };
 
-  useEffect(() => {
-    if (user?.token) fetchLevies();
-  }, [user?.token]);
-
-  const handlePayNow = async (id: string) => {
-    setSubmitting(true);
-    try {
-      // Backend triggers OTP generation and sends it (usually via SMS/Email simulation)
-      const res = await fetch(
-        `http://localhost:5000/api/driver/levies/${id}/request-otp`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${user?.token}` },
-        },
-      );
-
-      if (res.ok) {
-        setActiveOtpId(id);
-        setOtpInput("");
-        setOtpError(false);
-      } else {
-        alert("Failed to initiate payment request.");
-      }
-    } catch (err) {
-      alert("Network error: Failed to request OTP");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerify = async () => {
-    if (!activeOtpId || !otpInput) return;
-
-    setSubmitting(true);
-    try {
-      const res = await fetch(
-        `http://localhost:5000/api/driver/levies/${activeOtpId}/verify-otp`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${user?.token}`,
-          },
-          body: JSON.stringify({ otp: otpInput }),
-        },
-      );
-
-      if (res.ok) {
-        setActiveOtpId(null);
-        setOtpInput("");
-        await fetchLevies(); // Refresh list to move item from pending to paid
-      } else {
-        setOtpError(true);
-        setTimeout(() => setOtpError(false), 2000);
-      }
-    } catch (err) {
+  const handleVerify = () => {
+    if (!activeOtp) return;
+    if (otpInput === activeOtp.otp) {
+      setPayments(payments.map(p =>
+        p.id === activeOtp.id ? { ...p, status: 'paid' as const, timestamp: new Date().toISOString() } : p
+      ));
+      setActiveOtp(null);
+      setOtpInput('');
+      setOtpError(false);
+    } else {
       setOtpError(true);
-    } finally {
-      setSubmitting(false);
+      setTimeout(() => setOtpError(false), 2000);
     }
   };
-
-  if (loading)
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Loader2 className="animate-spin text-primary-500 w-10 h-10" />
-      </div>
-    );
-
-  const paid = payments.filter((p) => p.status === "paid");
-  const pending = payments.filter((p) => p.status === "pending");
-  const totalPaidAmount = paid.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -129,174 +55,155 @@ export default function Levies() {
         className="mb-8"
       >
         <h1 className="text-3xl font-bold text-white mb-1">Levies</h1>
-        <p className="text-surface-200/60">Union levy payments and history</p>
+        <p className="text-surface-200/60">Union levy payments</p>
       </motion.div>
 
-      {/* Stats Section */}
+      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="glass-card p-5">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card-hover p-5">
           <Wallet className="w-5 h-5 text-emerald-400 mb-3" />
-          <p className="text-2xl font-bold text-white">
-            ₦{totalPaidAmount.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-white">₦{totalPaid.toLocaleString()}</p>
           <p className="text-xs text-surface-200/40 mt-0.5">Total Paid</p>
-        </div>
-        <div className="glass-card p-5">
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card-hover p-5">
           <AlertCircle className="w-5 h-5 text-amber-400 mb-3" />
-          <p className="text-2xl font-bold text-white">{pending.length}</p>
-          <p className="text-xs text-surface-200/40 mt-0.5">Pending Payments</p>
-        </div>
-        <div className="glass-card p-5">
+          <p className="text-2xl font-bold text-white">{pendingPayments.length}</p>
+          <p className="text-xs text-surface-200/40 mt-0.5">Pending</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card-hover p-5">
           <Shield className="w-5 h-5 text-primary-400 mb-3" />
           <p className="text-2xl font-bold text-white">{payments.length}</p>
-          <p className="text-xs text-surface-200/40 mt-0.5">
-            Total Assigned Levies
-          </p>
-        </div>
+          <p className="text-xs text-surface-200/40 mt-0.5">Total Levies</p>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Unpaid Levies Section */}
-        <div className="glass-card overflow-hidden">
+        {/* Unpaid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="glass-card overflow-hidden"
+        >
           <div className="px-6 py-5 border-b border-white/[0.06]">
-            <h2 className="text-lg font-semibold text-white">
-              Pending Collections
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Unpaid Levies</h2>
+            <p className="text-sm text-surface-200/50 mt-0.5">{pendingPayments.length} pending</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {pending.length === 0 ? (
-              <div className="p-8 text-center text-surface-200/30 text-sm">
-                No pending levies.
+            {pendingPayments.length === 0 ? (
+              <div className="p-8 text-center">
+                <CheckCircle2 className="w-8 h-8 text-emerald-400/30 mx-auto mb-2" />
+                <p className="text-sm text-surface-200/40">All levies paid!</p>
               </div>
             ) : (
-              pending.map((p) => (
+              pendingPayments.map(p => (
                 <div key={p.id} className="p-5">
-                  <div className="flex justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <div>
-                      <p className="text-sm font-semibold text-white">
-                        {p.levyName}
-                      </p>
-                      <p className="text-xs text-surface-200/40">
-                        {p.agent?.user?.name || "Official Checkpoint"}
-                      </p>
+                      <p className="text-sm font-semibold text-white">{p.levyName}</p>
+                      <p className="text-xs text-surface-200/40 mt-0.5">{p.agentName}</p>
                     </div>
-                    <span className="text-lg font-bold text-amber-400">
-                      ₦{p.amount}
-                    </span>
+                    <span className="text-lg font-bold text-amber-400">₦{p.amount}</span>
                   </div>
 
-                  {activeOtpId === p.id ? (
-                    <div className="space-y-3">
-                      <div className="relative">
-                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-200/30" />
-                        <input
-                          type="text"
-                          maxLength={4}
-                          value={otpInput}
-                          onChange={(e) => setOtpInput(e.target.value)}
-                          className={`input-field text-center font-mono text-lg tracking-widest pl-10 ${otpError ? "border-rose-500/50" : ""}`}
-                          placeholder="Enter 4-digit OTP"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleVerify}
-                          disabled={submitting || otpInput.length < 4}
-                          className="flex-1 btn-primary py-2.5 flex items-center justify-center gap-2"
-                        >
-                          {submitting ? (
-                            <Loader2 className="animate-spin w-4 h-4" />
-                          ) : (
-                            "Verify & Pay"
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setActiveOtpId(null)}
-                          className="px-4 border border-white/10 rounded-xl hover:bg-white/5 text-surface-200/50 transition-all"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      {otpError && (
-                        <p className="text-xs text-rose-400 text-center animate-pulse">
-                          Invalid OTP code. Please try again.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => handlePayNow(p.id)}
-                      disabled={submitting}
-                      className="w-full btn-primary py-2.5 flex justify-center items-center gap-2"
-                    >
-                      {submitting ? (
-                        <Loader2 className="animate-spin w-4 h-4" />
-                      ) : (
-                        <>
-                          <Wallet className="w-4 h-4" /> Pay Now
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {activeOtp?.id === p.id ? (
+                      <motion.div
+                        key="otp"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="space-y-3"
+                      >
+                        <div className="p-3 rounded-xl bg-primary-500/10 border border-primary-500/20">
+                          <div className="flex items-center gap-2 mb-1">
+                            <KeyRound className="w-3.5 h-3.5 text-primary-400" />
+                            <span className="text-xs font-medium text-primary-400">OTP sent to your phone</span>
+                          </div>
+                          <p className="text-[10px] text-surface-200/30">
+                            Demo OTP: <span className="font-mono font-bold text-primary-300">{activeOtp.otp}</span>
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            maxLength={4}
+                            value={otpInput}
+                            onChange={(e) => setOtpInput(e.target.value)}
+                            placeholder="Enter OTP"
+                            className={`input-field flex-1 text-center font-mono text-lg tracking-widest ${otpError ? 'border-rose-500/50' : ''}`}
+                          />
+                          <button
+                            onClick={handleVerify}
+                            disabled={otpInput.length < 4}
+                            className="btn-primary px-5 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            Verify
+                          </button>
+                        </div>
+                        {otpError && (
+                          <p className="text-xs text-rose-400 text-center">Invalid OTP</p>
+                        )}
+                      </motion.div>
+                    ) : (
+                      <motion.button
+                        key="pay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => handlePayNow(p.id)}
+                        className="w-full btn-primary flex items-center justify-center gap-2 text-sm py-2.5"
+                      >
+                        <Wallet className="w-4 h-4" /> Pay Now
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Paid Levies Section */}
-        <div className="glass-card overflow-hidden">
+        {/* Paid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="glass-card overflow-hidden"
+        >
           <div className="px-6 py-5 border-b border-white/[0.06]">
-            <h2 className="text-lg font-semibold text-white">
-              Payment History
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Paid Levies</h2>
+            <p className="text-sm text-surface-200/50 mt-0.5">{paidPayments.length} completed</p>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {paid.length === 0 ? (
-              <div className="p-8 text-center text-surface-200/30 text-sm">
-                No payment history found.
+            {paidPayments.length === 0 ? (
+              <div className="p-8 text-center">
+                <Clock className="w-8 h-8 text-surface-200/15 mx-auto mb-2" />
+                <p className="text-sm text-surface-200/40">No payments yet</p>
               </div>
             ) : (
-              paid.map((p) => (
-                <div
-                  key={p.id}
-                  className="px-6 py-4 flex justify-between items-center hover:bg-white/[0.01] transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              paidPayments.map(p => (
+                <div key={p.id} className="px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-white">
-                        {p.levyName}
-                      </p>
-                      <p className="text-xs text-surface-200/40">
-                        {p.agent?.user?.name || "Official Checkpoint"}
-                      </p>
+                      <p className="text-sm font-medium text-white">{p.levyName}</p>
+                      <p className="text-xs text-surface-200/40">{p.agentName}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-emerald-400">
-                      ₦{p.amount}
+                    <p className="text-sm font-bold text-emerald-400">₦{p.amount}</p>
+                    <p className="text-xs text-surface-200/30">
+                      {new Date(p.timestamp).toLocaleTimeString('en-NG', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <div className="flex items-center gap-1 text-[10px] text-surface-200/30 mt-0.5">
-                      <Clock className="w-2.5 h-2.5" />
-                      {new Date(p.timestamp).toLocaleDateString("en-NG", {
-                        day: "numeric",
-                        month: "short",
-                      })}{" "}
-                      •{" "}
-                      {new Date(p.timestamp).toLocaleTimeString("en-NG", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

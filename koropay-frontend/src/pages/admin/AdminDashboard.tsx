@@ -1,69 +1,36 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 import {
   Users,
   Shield,
   Wallet,
   TrendingUp,
-  Loader2,
+  ArrowUpRight,
+  Car,
+  Receipt,
+  CheckCircle2,
   AlertCircle,
-  RefreshCw,
-  BarChart3,
-} from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+  XCircle,
+} from 'lucide-react';
+import { mockDrivers } from '../../data/drivers';
+import { mockAgents } from '../../data/agents';
+import { mockTransactions } from '../../data/mock';
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchAdminData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await fetch("http://localhost:5000/api/admin/dashboard", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
-      if (!res.ok) throw new Error("API server is unreachable");
-      setData(await res.json());
-    } catch (err) {
-      console.error(err);
-      setError("Admin services are currently offline. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.token) fetchAdminData();
-  }, [user]);
-
-  if (loading)
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary-500 w-8 h-8" />
-      </div>
-    );
-
-  if (error)
-    return (
-      <div className="max-w-xl mx-auto h-[60vh] flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6">
-          <Shield className="w-10 h-10 text-rose-500" />
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">
-          Admin Panel Error
-        </h1>
-        <p className="text-surface-200/50 mb-8">{error}</p>
-        <button
-          onClick={fetchAdminData}
-          className="btn-primary py-3 px-8 flex items-center gap-2"
-        >
-          <RefreshCw className="w-5 h-5" /> Reconnect to System
-        </button>
-      </div>
-    );
+  const totalRevenue = mockDrivers.reduce((s, d) => s + d.totalEarnings, 0);
+  const totalLevies = mockAgents.reduce((s, a) => s + a.totalCollected, 0);
+  const activeDrivers = mockDrivers.filter(d => d.status === 'active').length;
+  const activeAgents = mockAgents.filter(a => a.status === 'active').length;
+  const recentTransactions = mockTransactions.slice(0, 6);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -76,85 +43,170 @@ export default function AdminDashboard() {
         <p className="text-surface-200/60">System overview and key metrics</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        <div className="glass-card p-6">
-          <div className="flex justify-between mb-4">
-            <Users className="w-8 h-8 text-primary-400" />
-            <span className="text-emerald-400 text-sm">
-              {data.activeDrivers} active
+      {/* Stats */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"
+      >
+        <motion.div variants={item} className="glass-card-hover p-6 group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Users className="w-6 h-6 text-primary-400" />
+            </div>
+            <span className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
+              <ArrowUpRight className="w-4 h-4" />
+              {activeDrivers} active
             </span>
           </div>
-          <p className="text-2xl font-bold text-white">{data.totalDrivers}</p>
+          <p className="text-2xl font-bold text-white">{mockDrivers.length}</p>
           <p className="text-sm text-surface-200/50 mt-1">Total Drivers</p>
-        </div>
-        <div className="glass-card p-6">
-          <div className="flex justify-between mb-4">
-            <Shield className="w-8 h-8 text-emerald-400" />
-            <span className="text-emerald-400 text-sm">
-              {data.activeAgents} active
+        </motion.div>
+
+        <motion.div variants={item} className="glass-card-hover p-6 group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Shield className="w-6 h-6 text-emerald-400" />
+            </div>
+            <span className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
+              <ArrowUpRight className="w-4 h-4" />
+              {activeAgents} active
             </span>
           </div>
-          <p className="text-2xl font-bold text-white">{data.totalAgents}</p>
+          <p className="text-2xl font-bold text-white">{mockAgents.length}</p>
           <p className="text-sm text-surface-200/50 mt-1">Total Agents</p>
-        </div>
-        <div className="glass-card p-6">
-          <Wallet className="w-8 h-8 text-amber-400 mb-4" />
-          <p className="text-2xl font-bold text-white">
-            ₦{data.totalRevenue.toLocaleString()}
-          </p>
-          <p className="text-sm text-surface-200/50 mt-1">Driver Earnings</p>
-        </div>
-        <div className="glass-card p-6">
-          <TrendingUp className="w-8 h-8 text-rose-400 mb-4" />
-          <p className="text-2xl font-bold text-white">
-            ₦{data.totalLeviesCollected.toLocaleString()}
-          </p>
-          <p className="text-sm text-surface-200/50 mt-1">Levies Collected</p>
-        </div>
-      </div>
+        </motion.div>
 
-      <div className="glass-card overflow-hidden">
-        <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
-        </div>
-        <div className="overflow-x-auto">
-          {data.recentTransactions?.length > 0 ? (
-            <table className="w-full text-left">
+        <motion.div variants={item} className="glass-card-hover p-6 group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Wallet className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-white">₦{totalRevenue.toLocaleString()}</p>
+          <p className="text-sm text-surface-200/50 mt-1">Total Driver Revenue</p>
+        </motion.div>
+
+        <motion.div variants={item} className="glass-card-hover p-6 group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500/15 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-6 h-6 text-rose-400" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-white">₦{totalLevies.toLocaleString()}</p>
+          <p className="text-sm text-surface-200/50 mt-1">Total Levies Collected</p>
+        </motion.div>
+      </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Transactions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="lg:col-span-2 glass-card overflow-hidden"
+        >
+          <div className="px-6 py-5 border-b border-white/[0.06]">
+            <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
+            <p className="text-sm text-surface-200/50 mt-0.5">Latest payment activity across the system</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.06] text-xs text-surface-200/40 uppercase">
-                  <th className="px-6 py-3">Name</th>
-                  <th className="px-6 py-3">Type</th>
-                  <th className="px-6 py-3">Amount</th>
-                  <th className="px-6 py-3">Status</th>
+                <tr className="border-b border-white/[0.06]">
+                  <th className="text-left px-6 py-3 text-xs font-medium text-surface-200/40 uppercase tracking-wider">Name</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-surface-200/40 uppercase tracking-wider">Type</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-surface-200/40 uppercase tracking-wider">Amount</th>
+                  <th className="text-left px-6 py-3 text-xs font-medium text-surface-200/40 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {data.recentTransactions.map((tx: any) => (
-                  <tr
+              <tbody>
+                {recentTransactions.map((tx, i) => (
+                  <motion.tr
                     key={tx.id}
-                    className="text-sm text-white hover:bg-white/[0.01]"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 + i * 0.05 }}
+                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="px-6 py-4">{tx.passengerName}</td>
-                    <td className="px-6 py-4 capitalize">
-                      {tx.type.replace("_", " ")}
-                    </td>
-                    <td className="px-6 py-4 font-bold">₦{tx.amount}</td>
                     <td className="px-6 py-4">
-                      <span className="badge-success">Completed</span>
+                      <span className="text-sm font-medium text-white">{tx.passengerName}</span>
                     </td>
-                  </tr>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                        tx.type === 'passenger_payment' ? 'text-primary-400' : 'text-emerald-400'
+                      }`}>
+                        {tx.type === 'passenger_payment' ? <Car className="w-3 h-3" /> : <Shield className="w-3 h-3" />}
+                        {tx.type === 'passenger_payment' ? 'Fare' : 'Levy'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-semibold text-white">₦{tx.amount}</td>
+                    <td className="px-6 py-4">
+                      {tx.status === 'completed' && (
+                        <span className="badge-success"><CheckCircle2 className="w-3 h-3 mr-1" /> Done</span>
+                      )}
+                      {tx.status === 'pending' && (
+                        <span className="badge-warning"><AlertCircle className="w-3 h-3 mr-1" /> Pending</span>
+                      )}
+                      {tx.status === 'failed' && (
+                        <span className="badge-danger"><XCircle className="w-3 h-3 mr-1" /> Failed</span>
+                      )}
+                    </td>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <div className="py-20 text-center">
-              <BarChart3 className="w-12 h-12 text-surface-200/5 mx-auto mb-4" />
-              <p className="text-surface-200/40">
-                No recent activity detected in the system.
-              </p>
+          </div>
+        </motion.div>
+
+        {/* Quick Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="space-y-5"
+        >
+          <div className="glass-card p-6">
+            <h3 className="text-sm font-medium text-surface-200/50 mb-4">Driver Status</h3>
+            <div className="space-y-3">
+              {(['active', 'offline', 'suspended'] as const).map((status) => {
+                const count = mockDrivers.filter(d => d.status === status).length;
+                const pct = Math.round((count / mockDrivers.length) * 100);
+                const color = status === 'active' ? 'bg-emerald-500' : status === 'offline' ? 'bg-surface-200/30' : 'bg-rose-500';
+                return (
+                  <div key={status}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-surface-200/60 capitalize">{status}</span>
+                      <span className="text-white font-medium">{count}</span>
+                    </div>
+                    <div className="h-1.5 bg-surface-800 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ delay: 0.6, duration: 0.8 }}
+                        className={`h-full rounded-full ${color}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </div>
+
+          <div className="glass-card p-6">
+            <h3 className="text-sm font-medium text-surface-200/50 mb-4">Top Performing Route</h3>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-500/15 flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-primary-400" />
+              </div>
+              <div>
+                <p className="text-white font-medium text-sm">Mile 2 → Oshodi</p>
+                <p className="text-xs text-surface-200/40">167 trips • ₦93,100 earned</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

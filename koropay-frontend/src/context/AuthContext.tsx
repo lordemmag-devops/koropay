@@ -1,64 +1,58 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
-export type UserRole = "admin" | "driver" | "agent";
+export type UserRole = 'admin' | 'driver' | 'agent';
 
 interface AuthUser {
-  id: string;
   name: string;
   phone: string;
   role: UserRole;
-  token: string;
-  driver?: { id: string; vehiclePlate: string; route: string };
-  agent?: { id: string; checkpoint: string; fee: number };
+}
+
+interface RegisteredUser {
+  name: string;
+  phone: string;
+  password: string;
+  role: UserRole;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (userData: AuthUser) => void;
+  registeredUsers: RegisteredUser[];
+  login: (user: AuthUser) => void;
   logout: () => void;
-  loading: boolean;
+  registerUser: (user: RegisteredUser) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  registeredUsers: [],
+  login: () => {},
+  logout: () => {},
+  registerUser: () => {},
+});
+
+const defaultUsers: RegisteredUser[] = [
+  { name: 'Admin User', phone: '08000000000', password: 'admin123', role: 'admin' },
+  { name: 'Ade Ogunbiyi', phone: '08012345678', password: 'driver123', role: 'driver' },
+  { name: 'Ojuelegba Agent', phone: '08099887766', password: 'agent123', role: 'agent' },
+];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(defaultUsers);
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("koropay_auth");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
-  }, []);
-
-  const login = (userData: AuthUser) => {
-    setUser(userData);
-    localStorage.setItem("koropay_auth", JSON.stringify(userData));
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("koropay_auth");
-    localStorage.removeItem("koropay_trip_id");
-  };
+  const login = (userData: AuthUser) => setUser(userData);
+  const logout = () => setUser(null);
+  const registerUser = (newUser: RegisteredUser) =>
+    setRegisteredUsers((prev) => [...prev, newUser]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, registeredUsers, login, logout, registerUser }}>
+      {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  return useContext(AuthContext);
 }
