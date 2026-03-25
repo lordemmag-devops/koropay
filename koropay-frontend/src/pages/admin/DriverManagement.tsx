@@ -4,6 +4,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Car, Phone, User, MapPin, MoreVertical, CheckCircle2, XCircle, WifiOff, X, Lock, Building2 } from 'lucide-react';
 import { adminApi, paymentApi } from '../../utils/api';
 
+const FALLBACK_BANKS = [
+  { bankCode: '044', bankName: 'Access Bank' },
+  { bankCode: '023', bankName: 'Citibank' },
+  { bankCode: '050', bankName: 'EcoBank' },
+  { bankCode: '011', bankName: 'First Bank' },
+  { bankCode: '214', bankName: 'First City Monument Bank (FCMB)' },
+  { bankCode: '070', bankName: 'Fidelity Bank' },
+  { bankCode: '058', bankName: 'Guaranty Trust Bank (GTBank)' },
+  { bankCode: '030', bankName: 'Heritage Bank' },
+  { bankCode: '301', bankName: 'Jaiz Bank' },
+  { bankCode: '082', bankName: 'Keystone Bank' },
+  { bankCode: '526', bankName: 'Moniepoint MFB' },
+  { bankCode: '076', bankName: 'Polaris Bank' },
+  { bankCode: '101', bankName: 'Providus Bank' },
+  { bankCode: '221', bankName: 'Stanbic IBTC Bank' },
+  { bankCode: '068', bankName: 'Standard Chartered Bank' },
+  { bankCode: '232', bankName: 'Sterling Bank' },
+  { bankCode: '100', bankName: 'Suntrust Bank' },
+  { bankCode: '032', bankName: 'Union Bank' },
+  { bankCode: '033', bankName: 'United Bank for Africa (UBA)' },
+  { bankCode: '215', bankName: 'Unity Bank' },
+  { bankCode: '035', bankName: 'Wema Bank' },
+  { bankCode: '057', bankName: 'Zenith Bank' },
+  { bankCode: '627', bankName: 'Kuda MFB' },
+  { bankCode: '090405', bankName: 'Opay' },
+  { bankCode: '090110', bankName: 'PalmPay' },
+];
+
 export default function DriverManagement() {
   const navigate = useNavigate();
   const [drivers, setDrivers] = useState<any[]>([]);
@@ -30,7 +58,9 @@ export default function DriverManagement() {
 
   useEffect(() => { fetchDrivers(); }, []);
   useEffect(() => {
-    paymentApi.getBanks().then(setBanks).catch(console.error);
+    paymentApi.getBanks()
+      .then(data => setBanks(data.length > 0 ? data : FALLBACK_BANKS))
+      .catch(() => setBanks(FALLBACK_BANKS));
   }, []);
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Car, MapPin, Phone, Wallet, TrendingUp, Users, Calendar, CheckCircle2, AlertCircle, XCircle, WifiOff } from 'lucide-react';
+import { ArrowLeft, Car, MapPin, Phone, Wallet, TrendingUp, Users, Calendar, CheckCircle2, AlertCircle, XCircle, WifiOff, Building2 } from 'lucide-react';
 import { adminApi } from '../../utils/api';
 
 export default function DriverDetail() {
@@ -55,9 +55,12 @@ export default function DriverDetail() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">{driver.user?.name}</h1>
-              <div className="flex items-center gap-4 mt-1">
+              <div className="flex flex-wrap items-center gap-4 mt-1">
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Phone className="w-3.5 h-3.5" /> {driver.user?.phone}</span>
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Car className="w-3.5 h-3.5" /> {driver.vehiclePlate}</span>
+                {driver.accountNumber && (
+                  <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Building2 className="w-3.5 h-3.5" /> {driver.accountNumber} &bull; Bank {driver.bankCode}</span>
+                )}
                 {driver.user?.createdAt && (
                   <span className="flex items-center gap-1.5 text-sm text-surface-200/50">
                     <Calendar className="w-3.5 h-3.5" /> Joined {new Date(driver.user.createdAt).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' })}
