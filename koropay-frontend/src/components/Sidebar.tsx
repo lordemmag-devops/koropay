@@ -12,9 +12,13 @@ import {
   Play,
   Wallet,
   Settings,
+  Menu,
+  X,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const adminNav = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -41,6 +45,13 @@ const agentNav = [
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const navItems = user?.role === 'admin' ? adminNav
     : user?.role === 'driver' ? driverNav
@@ -59,13 +70,8 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  return (
-    <motion.aside
-      initial={{ x: -80, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="fixed left-0 top-0 bottom-0 w-72 bg-surface-900/80 backdrop-blur-2xl border-r border-white/[0.06] flex flex-col z-50"
-    >
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="px-6 py-8">
         <div className="flex items-center gap-3">
@@ -113,6 +119,58 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </motion.aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-4 left-4 z-50 md:hidden w-10 h-10 rounded-xl bg-surface-900/90 backdrop-blur-xl border border-white/[0.08] flex items-center justify-center text-white"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Desktop sidebar */}
+      <motion.aside
+        initial={{ x: -80, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="hidden md:flex fixed left-0 top-0 bottom-0 w-72 bg-surface-900/80 backdrop-blur-2xl border-r border-white/[0.06] flex-col z-50"
+      >
+        {sidebarContent}
+      </motion.aside>
+
+      {/* Mobile sidebar overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-72 bg-surface-900/95 backdrop-blur-2xl border-r border-white/[0.06] flex flex-col z-50 md:hidden"
+            >
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="absolute top-6 right-4 text-surface-200/40 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              {sidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

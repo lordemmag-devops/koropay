@@ -13,8 +13,8 @@ export default function Layout() {
 
       <Sidebar />
 
-      <main className="ml-72 min-h-screen relative">
-        <div className="p-8">
+      <main className="md:ml-72 min-h-screen relative">
+        <div className="p-4 pt-16 md:p-8 md:pt-8">
           <Outlet />
         </div>
       </main>

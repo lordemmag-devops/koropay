@@ -36,7 +36,7 @@ export default function Transactions() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex flex-wrap gap-4 mb-6">
-        <div className="relative flex-1 min-w-[250px] max-w-md">
+        <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-200/30" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search transactions..." className="input-field pl-11" />
         </div>

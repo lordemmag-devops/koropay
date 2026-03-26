@@ -75,7 +75,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-surface-200/70 mb-3">Login as</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {roles.map((r) => (
                   <button
                     key={r.value}
@@ -87,9 +87,9 @@ export default function Login() {
                         : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'
                     }`}
                   >
-                    <r.icon className={`w-6 h-6 mx-auto mb-2 ${role === r.value ? 'text-primary-400' : 'text-surface-200/30'}`} />
-                    <span className={`text-sm font-medium block ${role === r.value ? 'text-white' : 'text-surface-200/50'}`}>{r.label}</span>
-                    <span className={`text-[10px] block mt-0.5 ${role === r.value ? 'text-surface-200/50' : 'text-surface-200/25'}`}>{r.desc}</span>
+                    <r.icon className={`w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1.5 sm:mb-2 ${role === r.value ? 'text-primary-400' : 'text-surface-200/30'}`} />
+                    <span className={`text-xs sm:text-sm font-medium block ${role === r.value ? 'text-white' : 'text-surface-200/50'}`}>{r.label}</span>
+                    <span className={`text-[10px] block mt-0.5 sm:block ${role === r.value ? 'text-surface-200/50' : 'text-surface-200/25'} hidden`}>{r.desc}</span>
                   </button>
                 ))}
               </div>

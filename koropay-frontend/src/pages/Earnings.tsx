@@ -36,7 +36,7 @@ export default function Earnings() {
         <p className="text-surface-200/60">Track your income and trip performance</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
         {[
           { icon: Wallet, color: 'text-emerald-400', value: `₦${totalEarnings.toLocaleString()}`, label: 'Total Earnings' },
           { icon: TrendingUp, color: 'text-primary-400', value: totalTrips, label: 'Total Trips' },
@@ -55,7 +55,7 @@ export default function Earnings() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6 mb-8">
           <h2 className="text-lg font-semibold text-white mb-1">Earnings per Trip</h2>
           <p className="text-sm text-surface-200/40 mb-6">Performance overview</p>
-          <div className="flex items-end gap-6 h-32">
+          <div className="flex items-end gap-2 sm:gap-6 h-32 overflow-x-auto">
             {trips.map((trip, i) => (
               <div key={trip.id} className="flex-1 flex flex-col items-center gap-2">
                 <span className="text-xs text-surface-200/40">₦{(trip.totalAmount / 1000).toFixed(1)}k</span>
