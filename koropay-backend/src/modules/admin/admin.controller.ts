@@ -73,29 +73,18 @@ export const createDriver = async (req: AuthRequest, res: Response): Promise<voi
   const { name, phone, password, vehiclePlate, route, accountNumber, bankCode } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) {
-    res.status(409).json({ message: 'Phone already registered' });
-    return;
-  }
+  if (existing) { res.status(409).json({ message: 'Phone already registered' }); return; }
 
-  // Generate next sequential 4-digit ussdCode
   const lastDriver = await prisma.driver.findFirst({ orderBy: { ussdCode: 'desc' } });
   const nextCode = lastDriver ? String(Number(lastDriver.ussdCode) + 1).padStart(4, '0') : '0001';
 
   const hashed = await bcrypt.hash(password || 'koropay123', 10);
-
-  const user = await prisma.user.create({
-    data: {
-      name,
-      phone,
-      password: hashed,
-      role: 'driver',
-      driver: { create: { vehiclePlate, ussdCode: nextCode, route: route || '', accountNumber, bankCode } },
-    },
-    include: { driver: true },
+  const user = await prisma.user.create({ data: { name, phone, password: hashed, role: 'driver' } });
+  const driver = await prisma.driver.create({
+    data: { userId: user.id, vehiclePlate, ussdCode: nextCode, route: route || '', accountNumber, bankCode },
   });
 
-  res.status(201).json(user);
+  res.status(201).json({ ...user, driver });
 };
 
 export const updateDriverStatus = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -156,25 +145,15 @@ export const createAgent = async (req: AuthRequest, res: Response): Promise<void
   const { name, phone, password, checkpoint, location, accountNumber, bankCode } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
-  if (existing) {
-    res.status(409).json({ message: 'Phone already registered' });
-    return;
-  }
+  if (existing) { res.status(409).json({ message: 'Phone already registered' }); return; }
 
   const hashed = await bcrypt.hash(password || 'koropay123', 10);
-
-  const user = await prisma.user.create({
-    data: {
-      name,
-      phone,
-      password: hashed,
-      role: 'agent',
-      agent: { create: { checkpoint, location, accountNumber, bankCode } },
-    },
-    include: { agent: true },
+  const user = await prisma.user.create({ data: { name, phone, password: hashed, role: 'agent' } });
+  const agent = await prisma.agent.create({
+    data: { userId: user.id, checkpoint, location, accountNumber, bankCode },
   });
 
-  res.status(201).json(user);
+  res.status(201).json({ ...user, agent });
 };
 
 export const updateAgentStatus = async (req: AuthRequest, res: Response): Promise<void> => {

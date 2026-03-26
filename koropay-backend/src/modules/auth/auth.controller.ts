@@ -19,46 +19,30 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   }
 
   const hashed = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({ data: { name, phone, password: hashed, role } });
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      phone,
-      password: hashed,
-      role,
-      ...(role === 'driver' && {
-        driver: {
-          create: {
-            vehiclePlate,
-            route: route || '',
-          },
-        },
-      }),
-      ...(role === 'agent' && {
-        agent: {
-          create: {
-            checkpoint: checkpoint || '',
-            location: location || '',
-            fee: Number(fee) || 0,
-          },
-        },
-      }),
-    },
-    include: { driver: true, agent: true },
-  });
+  let driver = null;
+  let agent = null;
+
+  if (role === 'driver') {
+    const lastDriver = await prisma.driver.findFirst({ orderBy: { ussdCode: 'desc' } });
+    const nextCode = lastDriver ? String(Number(lastDriver.ussdCode) + 1).padStart(4, '0') : '0001';
+    driver = await prisma.driver.create({
+      data: { userId: user.id, vehiclePlate, ussdCode: nextCode, route: route || '' },
+    });
+  }
+
+  if (role === 'agent') {
+    agent = await prisma.agent.create({
+      data: { userId: user.id, checkpoint: checkpoint || '', location: location || '', fee: Number(fee) || 0 },
+    });
+  }
 
   const token = signToken({ userId: user.id, role: user.role });
 
   res.status(201).json({
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      role: user.role,
-      driver: user.driver,
-      agent: user.agent,
-    },
+    user: { id: user.id, name: user.name, phone: user.phone, role: user.role, driver, agent },
   });
 };
 
