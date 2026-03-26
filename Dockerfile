@@ -2,10 +2,10 @@ FROM node:20-alpine AS frontend-builder
 
 WORKDIR /frontend
 
-COPY ../koropay-frontend/package*.json ./
+COPY koropay-frontend/package*.json ./
 RUN npm ci
 
-COPY ../koropay-frontend ./
+COPY koropay-frontend ./
 RUN VITE_API_URL=/api npm run build
 
 # ─── Backend builder ──────────────────────────────────────────────────────────
@@ -13,14 +13,14 @@ FROM node:20-alpine AS backend-builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY koropay-backend/package*.json ./
 RUN npm ci
 
-COPY prisma ./prisma
+COPY koropay-backend/prisma ./prisma
 RUN npx prisma generate
 
-COPY tsconfig.json ./
-COPY src ./src
+COPY koropay-backend/tsconfig.json ./
+COPY koropay-backend/src ./src
 
 RUN npm run build
 
@@ -29,10 +29,10 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY koropay-backend/package*.json ./
 RUN npm ci --omit=dev
 
-COPY prisma ./prisma
+COPY koropay-backend/prisma ./prisma
 RUN npx prisma generate
 
 COPY --from=backend-builder /app/dist ./dist

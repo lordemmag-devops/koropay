@@ -16,7 +16,9 @@ import paymentRoutes from './modules/payment/payment.routes';
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? false : '*',
+}));
 app.use(express.json());
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'koropay-backend' }));
@@ -29,22 +31,11 @@ app.use('/api/driver', driverRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/payment', paymentRoutes);
 
-app.get('/', (_req, res) => {
-  res.json({
-    service: 'KoroPay API',
-    version: '1.0.0',
-    status: 'running',
-    docs: '/api/docs',
-    health: '/health',
-    endpoints: [
-      '/api/auth',
-      '/api/admin',
-      '/api/driver',
-      '/api/agent',
-      '/api/payment',
-    ],
-  });
-});
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../../koropay-frontend/dist');
+  app.use(express.static(frontendDist));
+  app.get('*', (_req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
+}
 
 app.use((req, res) => {
   res.status(404).json({
