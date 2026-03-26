@@ -14,9 +14,12 @@ import {
   Settings,
   Menu,
   X,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { useSidebar } from '../context/SidebarContext';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -47,8 +50,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { collapsed, setCollapsed } = useSidebar();
 
-  // Close sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
@@ -75,13 +78,15 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-primary-500/25">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-primary-500/25 shrink-0">
             <Bus className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">KoroPay</h1>
-            <p className="text-xs text-surface-200/60">{roleLabel}</p>
-          </div>
+          {!collapsed && (
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tight">KoroPay</h1>
+              <p className="text-xs text-surface-200/60">{roleLabel}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -91,33 +96,47 @@ export default function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
-              isActive ? 'nav-link-active' : 'nav-link'
+              `${isActive ? 'nav-link-active' : 'nav-link'} ${collapsed ? 'justify-center! px-3!' : ''}`
             }
           >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium text-sm">{item.label}</span>
+            <item.icon className="w-5 h-5 shrink-0" />
+            {!collapsed && <span className="font-medium text-sm">{item.label}</span>}
           </NavLink>
         ))}
       </nav>
 
       {/* User Info */}
-      <div className="p-4 m-4 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-        <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${roleColor} flex items-center justify-center text-sm font-bold text-white`}>
+      <div className={`rounded-xl bg-white/[0.04] border border-white/[0.06] ${collapsed ? 'p-3 mx-2 mb-4' : 'p-4 m-4'}`}>
+        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+          <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${roleColor} flex items-center justify-center text-sm font-bold text-white shrink-0`}>
             {user?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-            <p className="text-xs text-surface-200/50">{user?.phone}</p>
-          </div>
+          {!collapsed && (
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
+                <p className="text-xs text-surface-200/50">{user?.phone}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-surface-200/40 hover:text-rose-400 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </>
+          )}
+        </div>
+        {collapsed && (
           <button
             onClick={handleLogout}
-            className="text-surface-200/40 hover:text-rose-400 transition-colors"
+            title="Logout"
+            className="text-surface-200/40 hover:text-rose-400 transition-colors mt-3 mx-auto block"
           >
             <LogOut className="w-4 h-4" />
           </button>
-        </div>
+        )}
       </div>
     </>
   );
@@ -135,11 +154,19 @@ export default function Sidebar() {
       {/* Desktop sidebar */}
       <motion.aside
         initial={{ x: -80, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="hidden md:flex fixed left-0 top-0 bottom-0 w-72 bg-surface-900/80 backdrop-blur-2xl border-r border-white/[0.06] flex-col z-50"
+        animate={{ x: 0, opacity: 1, width: collapsed ? 80 : 288 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="hidden md:flex fixed left-0 top-0 bottom-0 bg-surface-900/80 backdrop-blur-2xl border-r border-white/[0.06] flex-col z-50"
       >
         {sidebarContent}
+
+        {/* Collapse toggle */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="absolute -right-3 top-8 w-6 h-6 rounded-full bg-surface-800 border border-white/10 flex items-center justify-center text-surface-200/50 hover:text-white hover:bg-surface-700 transition-all"
+        >
+          {collapsed ? <ChevronsRight className="w-3.5 h-3.5" /> : <ChevronsLeft className="w-3.5 h-3.5" />}
+        </button>
       </motion.aside>
 
       {/* Mobile sidebar overlay */}

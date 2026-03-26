@@ -1,7 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 
-export default function Layout() {
+function LayoutInner() {
+  const { collapsed } = useSidebar();
+
   return (
     <div className="min-h-screen bg-surface-950">
       {/* Background gradient orbs */}
@@ -13,11 +16,30 @@ export default function Layout() {
 
       <Sidebar />
 
-      <main className="md:ml-72 min-h-screen relative">
-        <div className="p-4 pt-16 md:p-8 md:pt-8">
+      <main
+        className="min-h-screen relative transition-[margin-left] duration-300"
+        style={{ marginLeft: undefined }}
+      >
+        <div className="p-4 pt-16 md:p-8 md:pt-8" style={{ marginLeft: undefined }}>
           <Outlet />
         </div>
       </main>
+
+      <style>{`
+        @media (min-width: 768px) {
+          main {
+            margin-left: ${collapsed ? '80px' : '288px'} !important;
+          }
+        }
+      `}</style>
     </div>
+  );
+}
+
+export default function Layout() {
+  return (
+    <SidebarProvider>
+      <LayoutInner />
+    </SidebarProvider>
   );
 }
