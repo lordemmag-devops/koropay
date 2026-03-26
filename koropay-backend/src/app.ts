@@ -32,7 +32,7 @@ app.use('/api/agent', agentRoutes);
 app.use('/api/payment', paymentRoutes);
 
 if (process.env.NODE_ENV === 'production') {
-  const frontendDist = path.join(__dirname, '../../koropay-frontend/dist');
+  const frontendDist = path.join(__dirname, '../koropay-frontend/dist');
   app.use(express.static(frontendDist));
   app.get('/{*path}', (_req, res) => res.sendFile(path.join(frontendDist, 'index.html')));
 }
