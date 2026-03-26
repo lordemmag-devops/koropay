@@ -29,7 +29,30 @@ app.use('/api/driver', driverRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/payment', paymentRoutes);
 
-app.use((_req, res) => res.status(404).json({ message: 'Route not found' }));
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'KoroPay API',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/api/docs',
+    health: '/health',
+    endpoints: [
+      '/api/auth',
+      '/api/admin',
+      '/api/driver',
+      '/api/agent',
+      '/api/payment',
+    ],
+  });
+});
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+    docs: '/api/docs',
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`KoroPay backend running on port ${PORT}`));
