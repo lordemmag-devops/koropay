@@ -9,16 +9,12 @@ async function main() {
   const hash = (p: string) => bcrypt.hash(p, 10);
 
   // ─── Admin ────────────────────────────────────────────────────────────────
-  await prisma.user.upsert({
-    where: { phone: '08000000000' },
-    update: {},
-    create: {
-      name: 'Admin User',
-      phone: '08000000000',
-      password: await hash('admin123'),
-      role: 'admin',
-    },
-  });
+  const adminExists = await prisma.user.findUnique({ where: { phone: '08000000000' } });
+  if (!adminExists) {
+    await prisma.user.create({
+      data: { name: 'Admin User', phone: '08000000000', password: await hash('admin123'), role: 'admin' },
+    });
+  }
 
   // ─── Drivers ──────────────────────────────────────────────────────────────
   const driversData = [
@@ -31,27 +27,24 @@ async function main() {
   ];
 
   for (const d of driversData) {
-    await prisma.user.upsert({
-      where: { phone: d.phone },
-      update: {},
-      create: {
-        name: d.name,
-        phone: d.phone,
-        password: await hash('driver123'),
-        role: 'driver',
-        driver: {
-          create: {
-            vehiclePlate: d.plate,
-            ussdCode: d.ussdCode,
-            route: d.route,
-            accountNumber: d.accountNumber,
-            bankCode: d.bankCode,
-            totalEarnings: d.earnings,
-            totalTrips: d.trips,
-          },
+    const existing = await prisma.user.findUnique({ where: { phone: d.phone } });
+    if (!existing) {
+      const user = await prisma.user.create({
+        data: { name: d.name, phone: d.phone, password: await hash('driver123'), role: 'driver' },
+      });
+      await prisma.driver.create({
+        data: {
+          userId: user.id,
+          vehiclePlate: d.plate,
+          ussdCode: d.ussdCode,
+          route: d.route,
+          accountNumber: d.accountNumber,
+          bankCode: d.bankCode,
+          totalEarnings: d.earnings,
+          totalTrips: d.trips,
         },
-      },
-    });
+      });
+    }
   }
 
   // ─── Agents ───────────────────────────────────────────────────────────────
@@ -63,27 +56,23 @@ async function main() {
   ];
 
   for (const a of agentsData) {
-    await prisma.user.upsert({
-      where: { phone: a.phone },
-      update: {},
-      create: {
-        name: a.name,
-        phone: a.phone,
-        password: await hash('agent123'),
-        role: 'agent',
-        agent: {
-          create: {
-            checkpoint: a.checkpoint,
-            location: a.location,
-
-            accountNumber: a.accountNumber,
-            bankCode: a.bankCode,
-            totalCollected: a.collected,
-            totalScans: a.scans,
-          },
+    const existing = await prisma.user.findUnique({ where: { phone: a.phone } });
+    if (!existing) {
+      const user = await prisma.user.create({
+        data: { name: a.name, phone: a.phone, password: await hash('agent123'), role: 'agent' },
+      });
+      await prisma.agent.create({
+        data: {
+          userId: user.id,
+          checkpoint: a.checkpoint,
+          location: a.location,
+          accountNumber: a.accountNumber,
+          bankCode: a.bankCode,
+          totalCollected: a.collected,
+          totalScans: a.scans,
         },
-      },
-    });
+      });
+    }
   }
 
   // ─── Levy Settings ────────────────────────────────────────────────────────
