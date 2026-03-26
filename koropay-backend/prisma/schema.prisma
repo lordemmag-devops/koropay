@@ -62,6 +62,7 @@ model Driver {
   id            String       @id @default(cuid())
   userId        String       @unique
   vehiclePlate  String       @unique
+  ussdCode      String       @unique
   route         String
   accountNumber String?
   bankCode      String?

@@ -78,6 +78,10 @@ export const createDriver = async (req: AuthRequest, res: Response): Promise<voi
     return;
   }
 
+  // Generate next sequential 4-digit ussdCode
+  const lastDriver = await prisma.driver.findFirst({ orderBy: { ussdCode: 'desc' } });
+  const nextCode = lastDriver ? String(Number(lastDriver.ussdCode) + 1).padStart(4, '0') : '0001';
+
   const hashed = await bcrypt.hash(password || 'koropay123', 10);
 
   const user = await prisma.user.create({
@@ -86,7 +90,7 @@ export const createDriver = async (req: AuthRequest, res: Response): Promise<voi
       phone,
       password: hashed,
       role: 'driver',
-      driver: { create: { vehiclePlate, route: route || '', accountNumber, bankCode } },
+      driver: { create: { vehiclePlate, ussdCode: nextCode, route: route || '', accountNumber, bankCode } },
     },
     include: { driver: true },
   });

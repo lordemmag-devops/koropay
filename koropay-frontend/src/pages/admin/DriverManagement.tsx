@@ -177,6 +177,10 @@ export default function DriverManagement() {
                 <MapPin className="w-3.5 h-3.5 text-surface-200/30" />
                 <span className="text-surface-200/60">{driver.route || '—'}</span>
               </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="w-3.5 h-3.5 text-surface-200/30" />
+                <span className="text-surface-200/60 font-mono">*384*{driver.ussdCode}#</span>
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-3 border-t border-white/[0.06]">

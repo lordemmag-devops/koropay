@@ -112,12 +112,14 @@ export const getSupportedBanks = async (_req: Request, res: Response): Promise<v
 
 export const resolveDriverByCode = async (req: Request, res: Response): Promise<void> => {
   const { code } = req.params;
-  const driverCode = String(code).toUpperCase();
+  const driverCode = String(code).padStart(4, '0');
   try {
-    const drivers = await prisma.driver.findMany({ include: { user: true, routes: { include: { dropPoints: true } } } });
-    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === driverCode);
+    const driver = await prisma.driver.findUnique({
+      where: { ussdCode: driverCode },
+      include: { user: true, routes: { include: { dropPoints: true } } },
+    });
     if (!driver) { res.status(404).json({ message: 'Driver not found for this code' }); return; }
-    res.json({ driverId: driver.id, driverName: driver.user.name, vehiclePlate: driver.vehiclePlate, routes: driver.routes });
+    res.json({ driverId: driver.id, driverName: driver.user.name, vehiclePlate: driver.vehiclePlate, ussdCode: driver.ussdCode, routes: driver.routes });
   } catch (err: any) {
     res.status(500).json({ message: 'Failed to resolve driver', error: err.message });
   }
@@ -129,9 +131,11 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
   const { driverCode, routeId, passengerPhone, passengerBankCode, dropPoint } = req.body;
 
   try {
-    // Resolve driver from code
-    const drivers = await prisma.driver.findMany({ include: { user: true } });
-    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === driverCode.toUpperCase());
+    // Resolve driver from ussdCode
+    const driver = await prisma.driver.findUnique({
+      where: { ussdCode: String(driverCode).padStart(4, '0') },
+      include: { user: true },
+    });
     if (!driver) { res.status(404).json({ message: 'Driver not found for this code' }); return; }
 
     // Find or auto-create an ongoing trip for this driver on this route

@@ -22,12 +22,12 @@ async function main() {
 
   // ─── Drivers ──────────────────────────────────────────────────────────────
   const driversData = [
-    { name: 'Ade Ogunbiyi', phone: '08012345678', plate: 'ABC-123-XY', route: 'Ojuelegba → Yaba', accountNumber: '0123456789', bankCode: '044', earnings: 87500, trips: 142 },
-    { name: 'Musa Ibrahim', phone: '08098765432', plate: 'LND-456-KJ', route: 'CMS → Lekki Phase 1', accountNumber: '0987654321', bankCode: '058', earnings: 64200, trips: 98 },
-    { name: 'Chidi Nwosu', phone: '07033445566', plate: 'KTU-789-AB', route: 'Ikeja → Maryland', accountNumber: '0112233445', bankCode: '033', earnings: 51800, trips: 76 },
-    { name: 'Tunde Bakare', phone: '09011223344', plate: 'EPE-321-CD', route: 'Mile 2 → Oshodi', accountNumber: '0556677889', bankCode: '011', earnings: 93100, trips: 167 },
-    { name: 'Yemi Alade', phone: '08155667788', plate: 'IKJ-654-EF', route: 'Berger → Ojota', accountNumber: '0334455667', bankCode: '057', earnings: 12400, trips: 23 },
-    { name: 'Kola Adenuga', phone: '07066778899', plate: 'MUS-987-GH', route: 'Iyana Oworo → Ketu', accountNumber: '0778899001', bankCode: '044', earnings: 45600, trips: 61 },
+    { name: 'Ade Ogunbiyi', phone: '08012345678', plate: 'ABC-123-XY', ussdCode: '0001', route: 'Ojuelegba → Yaba', accountNumber: '0123456789', bankCode: '044', earnings: 87500, trips: 142 },
+    { name: 'Musa Ibrahim', phone: '08098765432', plate: 'LND-456-KJ', ussdCode: '0002', route: 'CMS → Lekki Phase 1', accountNumber: '0987654321', bankCode: '058', earnings: 64200, trips: 98 },
+    { name: 'Chidi Nwosu', phone: '07033445566', plate: 'KTU-789-AB', ussdCode: '0003', route: 'Ikeja → Maryland', accountNumber: '0112233445', bankCode: '033', earnings: 51800, trips: 76 },
+    { name: 'Tunde Bakare', phone: '09011223344', plate: 'EPE-321-CD', ussdCode: '0004', route: 'Mile 2 → Oshodi', accountNumber: '0556677889', bankCode: '011', earnings: 93100, trips: 167 },
+    { name: 'Yemi Alade', phone: '08155667788', plate: 'IKJ-654-EF', ussdCode: '0005', route: 'Berger → Ojota', accountNumber: '0334455667', bankCode: '057', earnings: 12400, trips: 23 },
+    { name: 'Kola Adenuga', phone: '07066778899', plate: 'MUS-987-GH', ussdCode: '0006', route: 'Iyana Oworo → Ketu', accountNumber: '0778899001', bankCode: '044', earnings: 45600, trips: 61 },
   ];
 
   for (const d of driversData) {
@@ -42,6 +42,7 @@ async function main() {
         driver: {
           create: {
             vehiclePlate: d.plate,
+            ussdCode: d.ussdCode,
             route: d.route,
             accountNumber: d.accountNumber,
             bankCode: d.bankCode,

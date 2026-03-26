@@ -25,7 +25,7 @@ export default function Dashboard() {
   const totalPassengers = data?.totalPassengers ?? 0;
   const trips = data?.trips ?? [];
   const vehiclePlate: string = data?.driver?.vehiclePlate ?? '';
-  const ussdCode = vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase();
+  const ussdCode: string = data?.driver?.ussdCode ?? '----';
 
   const actionCards = [
     { title: 'Set Route', desc: 'Define your route and fare', icon: MapPin, color: 'from-primary-400/20 to-primary-600/20', iconColor: 'text-primary-400', path: '/driver/routes' },

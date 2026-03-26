@@ -58,6 +58,9 @@ export default function DriverDetail() {
               <div className="flex flex-wrap items-center gap-4 mt-1">
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Phone className="w-3.5 h-3.5" /> {driver.user?.phone}</span>
                 <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Car className="w-3.5 h-3.5" /> {driver.vehiclePlate}</span>
+                {driver.ussdCode && (
+                  <span className="flex items-center gap-1.5 text-sm text-primary-300 font-mono"><Phone className="w-3.5 h-3.5" /> *384*{driver.ussdCode}#</span>
+                )}
                 {driver.accountNumber && (
                   <span className="flex items-center gap-1.5 text-sm text-surface-200/50"><Building2 className="w-3.5 h-3.5" /> {driver.accountNumber} &bull; Bank {driver.bankCode}</span>
                 )}
