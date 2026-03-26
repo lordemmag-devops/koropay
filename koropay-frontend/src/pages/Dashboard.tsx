@@ -24,7 +24,6 @@ export default function Dashboard() {
   const totalTrips = data?.totalTrips ?? 0;
   const totalPassengers = data?.totalPassengers ?? 0;
   const trips = data?.trips ?? [];
-  const vehiclePlate: string = data?.driver?.vehiclePlate ?? '';
   const ussdCode: string = data?.driver?.ussdCode ?? '----';
 
   const actionCards = [
