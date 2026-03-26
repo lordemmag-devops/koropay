@@ -77,7 +77,7 @@ export default function LevySettings() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">Levy Settings</h1>
           <p className="text-surface-200/60">Define and manage union levy prices centrally</p>
@@ -133,7 +133,7 @@ export default function LevySettings() {
       <div className="space-y-3">
         {levies.map((levy, i) => (
           <motion.div key={levy.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }} className={`glass-card-hover p-5 transition-opacity ${!levy.active ? 'opacity-50' : ''}`}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-4">
                 <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${levy.active ? 'bg-emerald-500/15' : 'bg-surface-800'}`}>
                   {levy.active ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <XCircle className="w-5 h-5 text-surface-200/30" />}
@@ -147,7 +147,7 @@ export default function LevySettings() {
               <div className="flex items-center gap-4">
                 {editingId === levy.id ? (
                   <div className="flex items-center gap-2">
-                    <div className="relative w-28">
+                    <div className="relative w-24 sm:w-28">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-200/40 text-sm">₦</span>
                       <input type="number" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} className="input-field pl-7 text-sm py-2" autoFocus />
                     </div>

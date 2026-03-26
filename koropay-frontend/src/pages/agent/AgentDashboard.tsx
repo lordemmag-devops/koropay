@@ -171,7 +171,7 @@ export default function AgentDashboard() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-6">
-        <div className="relative max-w-md">
+        <div className="relative w-full max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-200/30" />
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search driver by plate or name..." className="input-field pl-11" />
         </div>
