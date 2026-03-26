@@ -108,30 +108,47 @@ export const getSupportedBanks = async (_req: Request, res: Response): Promise<v
   }
 };
 
+// ─── Resolve Driver by USSD Code ─────────────────────────────────────────────
+
+export const resolveDriverByCode = async (req: Request, res: Response): Promise<void> => {
+  const { code } = req.params;
+  try {
+    const drivers = await prisma.driver.findMany({ include: { user: true, routes: { include: { dropPoints: true } } } });
+    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === code.toUpperCase());
+    if (!driver) { res.status(404).json({ message: 'Driver not found for this code' }); return; }
+    res.json({ driverId: driver.id, driverName: driver.user.name, vehiclePlate: driver.vehiclePlate, routes: driver.routes });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Failed to resolve driver', error: err.message });
+  }
+};
+
 // ─── Initiate USSD Payment ────────────────────────────────────────────────────
 
 export const initiateUssdPayment = async (req: Request, res: Response): Promise<void> => {
-  const { tripId, routeName, passengerPhone, passengerBankCode, dropPoint } = req.body;
+  const { driverCode, routeId, passengerPhone, passengerBankCode, dropPoint } = req.body;
 
   try {
+    // Resolve driver from code
+    const drivers = await prisma.driver.findMany({ include: { user: true } });
+    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === driverCode.toUpperCase());
+    if (!driver) { res.status(404).json({ message: 'Driver not found for this code' }); return; }
+
+    // Find or auto-create an ongoing trip for this driver on this route
     let trip = await prisma.trip.findFirst({
-      where: tripId ? { id: tripId, status: 'ongoing' } : { route: { routeName }, status: 'ongoing' },
+      where: { driverId: driver.id, routeId, status: 'ongoing' },
       include: { driver: true },
     });
 
-    // Demo fallback: auto-start a trip for the demo driver if none is ongoing
-    if (!trip && routeName) {
-      const demoDriver = await prisma.driver.findFirst({ where: { user: { phone: '08012345678' } } });
-      const route = demoDriver && await prisma.route.findFirst({ where: { driverId: demoDriver.id, routeName } });
-      if (demoDriver && route) {
-        trip = await prisma.trip.create({
-          data: { driverId: demoDriver.id, routeId: route.id, fare: route.fare },
-          include: { driver: true },
-        });
-      }
+    if (!trip) {
+      const route = await prisma.route.findFirst({ where: { id: routeId, driverId: driver.id } });
+      if (!route) { res.status(404).json({ message: 'Route not found for this driver' }); return; }
+      trip = await prisma.trip.create({
+        data: { driverId: driver.id, routeId: route.id, fare: route.fare },
+        include: { driver: true },
+      });
     }
 
-    if (!trip) { res.status(404).json({ message: 'Active trip not found' }); return; }
+    if (!trip) { res.status(404).json({ message: 'Could not start trip' }); return; }
 
     const { accountNumber: driverAccount, bankCode: driverBankCode } = trip.driver;
     if (!driverAccount || !driverBankCode) {

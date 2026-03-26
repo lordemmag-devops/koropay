@@ -98,6 +98,7 @@ export const adminApi = {
 // ─── Payment ──────────────────────────────────────────────────────────────────
 export const paymentApi = {
   getBanks: () => apiRequest("/payment/banks"),
-  initiateUssdPayment: (data: { routeName: string; passengerPhone: string; passengerBankCode: string; dropPoint?: string }) =>
+  resolveDriver: (code: string) => apiRequest(`/payment/ussd/driver/${code}`),
+  initiateUssdPayment: (data: { driverCode: string; routeId: string; passengerPhone: string; passengerBankCode: string; dropPoint?: string }) =>
     apiRequest("/payment/ussd/initiate", { method: "POST", body: JSON.stringify(data) }),
 };

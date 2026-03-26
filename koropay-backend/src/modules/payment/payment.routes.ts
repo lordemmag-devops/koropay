@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { verifyTransaction, confirmTripPayment, confirmLevyPayment, getSupportedBanks, initiateUssdPayment } from './payment.controller';
+import { verifyTransaction, confirmTripPayment, confirmLevyPayment, getSupportedBanks, initiateUssdPayment, resolveDriverByCode } from './payment.controller';
 
 const router = Router();
 
 router.get('/banks', getSupportedBanks);
+router.get('/ussd/driver/:code', resolveDriverByCode);
 router.post('/ussd/initiate', initiateUssdPayment);
 
 /**

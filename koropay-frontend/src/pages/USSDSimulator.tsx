@@ -1,44 +1,60 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
-import { mockRoutes } from '../data/mock';
 import { paymentApi } from '../utils/api';
-import type { USSDStep, DropPoint } from '../types';
+import type { USSDStep, DropPoint, Route } from '../types';
 
-// Default bank code used for demo — in production this comes from the telecom USSD session
 const DEMO_BANK_CODE = '044'; // Access Bank
 
 export default function USSDSimulator() {
   const [step, setStep] = useState<USSDStep>('idle');
-  const [selectedRoute, setSelectedRoute] = useState<string | null>(null);
+  const [ussdCode, setUssdCode] = useState('');
+  const [passengerPhone, setPassengerPhone] = useState('');
+  const [driverCode, setDriverCode] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedDrop, setSelectedDrop] = useState<DropPoint | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [resolvedName, setResolvedName] = useState('');
   const [paymentRef, setPaymentRef] = useState('');
   const [error, setError] = useState('');
 
-  const activeRoute = mockRoutes.find(r => r.id === selectedRoute);
-
   const reset = () => {
     setStep('idle');
+    setUssdCode('');
+    setPassengerPhone('');
+    setDriverCode('');
+    setDriverName('');
+    setRoutes([]);
     setSelectedRoute(null);
     setSelectedDrop(null);
-    setPhoneNumber('');
     setResolvedName('');
     setPaymentRef('');
     setError('');
   };
 
-  const handleDial = () => {
-    if (phoneNumber.trim()) {
+  // Parse *384*CODE# and resolve driver from backend
+  const handleDial = async () => {
+    setError('');
+    const match = ussdCode.match(/^\*384\*(\w+)#$/);
+    if (!match) { setError('Invalid format. Use *384*CODE#'); return; }
+    const code = match[1];
+    setStep('processing');
+    try {
+      const result = await paymentApi.resolveDriver(code);
+      setDriverCode(code);
+      setDriverName(result.driverName);
+      setRoutes(result.routes);
       setStep('select_route');
+    } catch (err: any) {
+      setError(err.message || 'Driver not found');
+      setStep('idle');
     }
   };
 
-  const handleSelectRoute = (routeId: string) => {
-    setSelectedRoute(routeId);
-    const route = mockRoutes.find(r => r.id === routeId);
-    if (route && route.dropPoints.length > 0) {
+  const handleSelectRoute = (route: Route) => {
+    setSelectedRoute(route);
+    if (route.dropPoints.length > 0) {
       setStep('select_drop');
     } else {
       setStep('confirm_fare');
@@ -50,18 +66,14 @@ export default function USSDSimulator() {
     setStep('confirm_fare');
   };
 
-  const handleSkipDrop = () => {
-    setSelectedDrop(null);
-    setStep('confirm_fare');
-  };
-
   const handleConfirm = async () => {
     setError('');
     setStep('processing');
     try {
       const result = await paymentApi.initiateUssdPayment({
-        routeName: activeRoute!.routeName,
-        passengerPhone: phoneNumber,
+        driverCode,
+        routeId: selectedRoute!.id,
+        passengerPhone,
         passengerBankCode: DEMO_BANK_CODE,
         dropPoint: selectedDrop?.name,
       });
@@ -78,32 +90,33 @@ export default function USSDSimulator() {
     switch (step) {
       case 'idle':
         return (
-          <motion.div
-            key="idle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col h-full"
-          >
+          <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
             <div className="flex-1 flex flex-col items-center justify-center px-6">
               <div className="w-16 h-16 rounded-full bg-primary-500/20 flex items-center justify-center mb-4 animate-pulse-glow">
                 <Phone className="w-7 h-7 text-primary-400" />
               </div>
-              <p className="text-white font-semibold text-center mb-1">Dial USSD Code</p>
-              <p className="text-xs text-surface-200/40 text-center mb-6">Enter *384*KoroPay#</p>
-
+              <p className="text-white font-semibold text-center mb-1">Dial Driver's USSD Code</p>
+              <p className="text-xs text-surface-200/40 text-center mb-3">Found on the driver's dashboard</p>
               <input
                 type="text"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="*384*772#"
-                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all"
+                value={ussdCode}
+                onChange={(e) => setUssdCode(e.target.value)}
+                placeholder="*384*1234#"
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all mb-3"
               />
+              <input
+                type="text"
+                value={passengerPhone}
+                onChange={(e) => setPassengerPhone(e.target.value)}
+                placeholder="Your phone number"
+                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-sm font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all"
+              />
+              {error && <p className="text-xs text-rose-400 text-center mt-2">{error}</p>}
             </div>
             <div className="p-4">
               <button
                 onClick={handleDial}
-                disabled={!phoneNumber.trim()}
+                disabled={!ussdCode.trim() || !passengerPhone.trim()}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 Dial
@@ -114,22 +127,16 @@ export default function USSDSimulator() {
 
       case 'select_route':
         return (
-          <motion.div
-            key="route"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            className="flex flex-col h-full"
-          >
+          <motion.div key="route" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-col h-full">
             <div className="p-4 border-b border-white/[0.06]">
-              <p className="text-xs text-surface-200/40 font-mono mb-1">KoroPay USSD</p>
+              <p className="text-xs text-surface-200/40 font-mono mb-1">KoroPay USSD • {driverName}</p>
               <p className="text-sm text-white">Select your route:</p>
             </div>
-            <div className="flex-1 p-4 space-y-2">
-              {mockRoutes.map((route, i) => (
+            <div className="flex-1 p-4 space-y-2 overflow-y-auto">
+              {routes.map((route, i) => (
                 <button
                   key={route.id}
-                  onClick={() => handleSelectRoute(route.id)}
+                  onClick={() => handleSelectRoute(route)}
                   className="w-full text-left p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all flex justify-between items-center"
                 >
                   <span>
@@ -150,19 +157,13 @@ export default function USSDSimulator() {
 
       case 'select_drop':
         return (
-          <motion.div
-            key="drop"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            className="flex flex-col h-full"
-          >
+          <motion.div key="drop" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-col h-full">
             <div className="p-4 border-b border-white/[0.06]">
-              <p className="text-xs text-surface-200/40 font-mono mb-1">{activeRoute?.routeName} • ₦{activeRoute?.fare}</p>
+              <p className="text-xs text-surface-200/40 font-mono mb-1">{selectedRoute?.routeName} • ₦{selectedRoute?.fare}</p>
               <p className="text-sm text-white">Where are you dropping? <span className="text-surface-200/30">(optional)</span></p>
             </div>
             <div className="flex-1 p-4 space-y-2">
-              {activeRoute?.dropPoints.map((dp, i) => (
+              {selectedRoute?.dropPoints.map((dp, i) => (
                 <button
                   key={dp.id}
                   onClick={() => handleSelectDrop(dp)}
@@ -173,7 +174,7 @@ export default function USSDSimulator() {
                 </button>
               ))}
               <button
-                onClick={handleSkipDrop}
+                onClick={() => { setSelectedDrop(null); setStep('confirm_fare'); }}
                 className="w-full text-left p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] border-dashed transition-all"
               >
                 <span className="text-surface-200/50 text-sm">Skip — I'll tell the driver</span>
@@ -189,19 +190,17 @@ export default function USSDSimulator() {
 
       case 'confirm_fare':
         return (
-          <motion.div
-            key="confirm"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            className="flex flex-col h-full"
-          >
+          <motion.div key="confirm" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="flex flex-col h-full">
             <div className="flex-1 flex flex-col items-center justify-center px-6">
               <p className="text-xs text-surface-200/40 mb-4">Confirm Payment</p>
               <div className="w-full p-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] space-y-3 mb-6">
                 <div className="flex justify-between">
+                  <span className="text-sm text-surface-200/50">Driver</span>
+                  <span className="text-sm text-white font-medium">{driverName}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-sm text-surface-200/50">Route</span>
-                  <span className="text-sm text-white font-medium">{activeRoute?.routeName}</span>
+                  <span className="text-sm text-white font-medium">{selectedRoute?.routeName}</span>
                 </div>
                 {selectedDrop && (
                   <div className="flex justify-between">
@@ -211,16 +210,13 @@ export default function USSDSimulator() {
                 )}
                 <div className="border-t border-white/[0.06] pt-3 flex justify-between">
                   <span className="text-sm text-surface-200/50">Fare</span>
-                  <span className="text-xl font-bold text-emerald-400">₦{activeRoute?.fare}</span>
+                  <span className="text-xl font-bold text-emerald-400">₦{selectedRoute?.fare}</span>
                 </div>
               </div>
             </div>
             <div className="p-4 space-y-2">
-              <button
-                onClick={handleConfirm}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
-              >
-                Pay ₦{activeRoute?.fare}
+              <button onClick={handleConfirm} className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]">
+                Pay ₦{selectedRoute?.fare}
               </button>
               {error && <p className="text-xs text-rose-400 text-center">{error}</p>}
               <button onClick={() => setStep('select_drop')} className="w-full btn-ghost text-sm flex items-center justify-center gap-2">
@@ -232,62 +228,27 @@ export default function USSDSimulator() {
 
       case 'processing':
         return (
-          <motion.div
-            key="processing"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center h-full px-6"
-          >
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            >
+          <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full px-6">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
               <Loader2 className="w-12 h-12 text-primary-400" />
             </motion.div>
-            <p className="text-white font-semibold mt-4">Processing Payment...</p>
+            <p className="text-white font-semibold mt-4">Processing...</p>
             <p className="text-xs text-surface-200/40 mt-1">Please wait</p>
           </motion.div>
         );
 
       case 'confirmation':
         return (
-          <motion.div
-            key="success"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col items-center justify-center h-full px-6"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-              className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4"
-            >
+          <motion.div key="success" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full px-6">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300, damping: 15 }} className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
               <CheckCircle2 className="w-10 h-10 text-emerald-400" />
             </motion.div>
             <p className="text-white font-bold text-lg">Payment Successful!</p>
-            <p className="text-sm text-surface-200/50 mt-1 text-center">
-              ₦{activeRoute?.fare} paid for {activeRoute?.routeName}
-            </p>
-            {resolvedName && (
-              <p className="text-xs text-primary-300 mt-0.5">Passenger: {resolvedName}</p>
-            )}
-            {selectedDrop && (
-              <p className="text-xs text-surface-200/30 mt-0.5">
-                Drop: {selectedDrop.name}
-              </p>
-            )}
-            <p className="text-xs text-surface-200/30 mt-1">
-              Ref: {paymentRef}
-            </p>
-            <button
-              onClick={reset}
-              className="mt-6 btn-primary text-sm"
-            >
-              New Trip
-            </button>
+            <p className="text-sm text-surface-200/50 mt-1 text-center">₦{selectedRoute?.fare} paid for {selectedRoute?.routeName}</p>
+            {resolvedName && <p className="text-xs text-primary-300 mt-0.5">Passenger: {resolvedName}</p>}
+            {selectedDrop && <p className="text-xs text-surface-200/30 mt-0.5">Drop: {selectedDrop.name}</p>}
+            <p className="text-xs text-surface-200/30 mt-1">Ref: {paymentRef}</p>
+            <button onClick={reset} className="mt-6 btn-primary text-sm">New Payment</button>
           </motion.div>
         );
     }
