@@ -21,6 +21,7 @@ RUN npx prisma generate
 
 COPY koropay-backend/tsconfig.json ./
 COPY koropay-backend/src ./src
+COPY koropay-backend/prisma/seed.ts ./src/seed.ts
 
 RUN npm run build
 
@@ -40,4 +41,4 @@ COPY --from=frontend-builder /frontend/dist ./koropay-frontend/dist
 
 EXPOSE 5000
 
-CMD ["node", "dist/app.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=prisma/schema.prisma && node dist/seed.js && node dist/app.js"]
