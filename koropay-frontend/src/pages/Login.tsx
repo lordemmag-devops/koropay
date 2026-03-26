@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bus, ArrowRight, Phone, Shield, Car, User, Lock } from 'lucide-react';
+import { Bus, ArrowRight, Phone, Shield, Car, User, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth, type UserRole } from '../context/AuthContext';
 
 export default function Login() {
@@ -12,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const roles: { value: UserRole; label: string; icon: typeof User; desc: string }[] = [
     { value: 'admin', label: 'Admin', icon: Shield, desc: 'Manage drivers & agents' },
@@ -114,12 +115,19 @@ export default function Login() {
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-200/30" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
-                  className="input-field pl-11"
+                  className="input-field pl-11 pr-11"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-200/30 hover:text-surface-200/60 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
