@@ -112,9 +112,10 @@ export const getSupportedBanks = async (_req: Request, res: Response): Promise<v
 
 export const resolveDriverByCode = async (req: Request, res: Response): Promise<void> => {
   const { code } = req.params;
+  const driverCode = String(code).toUpperCase();
   try {
     const drivers = await prisma.driver.findMany({ include: { user: true, routes: { include: { dropPoints: true } } } });
-    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === code.toUpperCase());
+    const driver = drivers.find(d => d.vehiclePlate.replace(/[^a-zA-Z0-9]/g, '').slice(-4).toUpperCase() === driverCode);
     if (!driver) { res.status(404).json({ message: 'Driver not found for this code' }); return; }
     res.json({ driverId: driver.id, driverName: driver.user.name, vehiclePlate: driver.vehiclePlate, routes: driver.routes });
   } catch (err: any) {
@@ -160,7 +161,7 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
     const passengerName = await getAccountName(passengerPhone, passengerBankCode);
 
     // Debit passenger, credit driver
-    const requestRef = `KP-${Date.now()}-${tripId.slice(-6)}`;
+    const requestRef = `KP-${Date.now()}-${trip.id.slice(-6)}`;
     const transfer = await initiateTransfer({
       amount: trip.fare,
       debitAccountNumber: passengerPhone,
@@ -179,7 +180,7 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
     const [payment] = await prisma.$transaction([
       prisma.tripPayment.create({
         data: {
-          tripId,
+          tripId: trip.id,
           passengerName,
           passengerPhone,
           amount: trip.fare,
@@ -190,12 +191,12 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
         },
       }),
       prisma.trip.update({
-        where: { id: tripId },
+        where: { id: trip.id },
         data: { totalPassengers: { increment: 1 }, totalAmount: { increment: trip.fare } },
       }),
       prisma.transaction.create({
         data: {
-          tripId,
+          tripId: trip.id,
           passengerName,
           amount: trip.fare,
           type: 'passenger_payment',
