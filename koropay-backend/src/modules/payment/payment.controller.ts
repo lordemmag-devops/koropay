@@ -111,13 +111,26 @@ export const getSupportedBanks = async (_req: Request, res: Response): Promise<v
 // ─── Initiate USSD Payment ────────────────────────────────────────────────────
 
 export const initiateUssdPayment = async (req: Request, res: Response): Promise<void> => {
-  const { tripId, passengerPhone, passengerBankCode, dropPoint } = req.body;
+  const { tripId, routeName, passengerPhone, passengerBankCode, dropPoint } = req.body;
 
   try {
-    const trip = await prisma.trip.findFirst({
-      where: { id: tripId, status: 'ongoing' },
+    let trip = await prisma.trip.findFirst({
+      where: tripId ? { id: tripId, status: 'ongoing' } : { route: { routeName }, status: 'ongoing' },
       include: { driver: true },
     });
+
+    // Demo fallback: auto-start a trip for the demo driver if none is ongoing
+    if (!trip && routeName) {
+      const demoDriver = await prisma.driver.findFirst({ where: { user: { phone: '08012345678' } } });
+      const route = demoDriver && await prisma.route.findFirst({ where: { driverId: demoDriver.id, routeName } });
+      if (demoDriver && route) {
+        trip = await prisma.trip.create({
+          data: { driverId: demoDriver.id, routeId: route.id, fare: route.fare },
+          include: { driver: true },
+        });
+      }
+    }
+
     if (!trip) { res.status(404).json({ message: 'Active trip not found' }); return; }
 
     const { accountNumber: driverAccount, bankCode: driverBankCode } = trip.driver;

@@ -60,7 +60,7 @@ export default function USSDSimulator() {
     setStep('processing');
     try {
       const result = await paymentApi.initiateUssdPayment({
-        tripId: activeRoute!.id,
+        routeName: activeRoute!.routeName,
         passengerPhone: phoneNumber,
         passengerBankCode: DEMO_BANK_CODE,
         dropPoint: selectedDrop?.name,
