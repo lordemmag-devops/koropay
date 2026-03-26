@@ -9,7 +9,6 @@ const DEMO_BANK_CODE = '044'; // Access Bank
 export default function USSDSimulator() {
   const [step, setStep] = useState<USSDStep>('idle');
   const [ussdCode, setUssdCode] = useState('');
-  const [passengerPhone, setPassengerPhone] = useState('');
   const [driverCode, setDriverCode] = useState('');
   const [driverName, setDriverName] = useState('');
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -22,7 +21,6 @@ export default function USSDSimulator() {
   const reset = () => {
     setStep('idle');
     setUssdCode('');
-    setPassengerPhone('');
     setDriverCode('');
     setDriverName('');
     setRoutes([]);
@@ -33,7 +31,6 @@ export default function USSDSimulator() {
     setError('');
   };
 
-  // Parse *384*CODE# and resolve driver from backend
   const handleDial = async () => {
     setError('');
     const match = ussdCode.match(/^\*384\*(\w+)#$/);
@@ -73,7 +70,7 @@ export default function USSDSimulator() {
       const result = await paymentApi.initiateUssdPayment({
         driverCode,
         routeId: selectedRoute!.id,
-        passengerPhone,
+        passengerPhone: '08012345678', // simulated — in production comes from telecom session
         passengerBankCode: DEMO_BANK_CODE,
         dropPoint: selectedDrop?.name,
       });
@@ -104,19 +101,12 @@ export default function USSDSimulator() {
                 placeholder="*384*1234#"
                 className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all mb-3"
               />
-              <input
-                type="text"
-                value={passengerPhone}
-                onChange={(e) => setPassengerPhone(e.target.value)}
-                placeholder="Your phone number"
-                className="w-full bg-white/[0.06] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-sm font-mono placeholder-surface-200/30 focus:outline-none focus:border-primary-500/50 transition-all"
-              />
               {error && <p className="text-xs text-rose-400 text-center mt-2">{error}</p>}
             </div>
             <div className="p-4">
               <button
                 onClick={handleDial}
-                disabled={!ussdCode.trim() || !passengerPhone.trim()}
+                disabled={!ussdCode.trim()}
                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 Dial
