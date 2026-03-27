@@ -83,15 +83,20 @@ async function main() {
     { levyName: 'VIO Inspection Fee', amount: 400, location: 'Oshodi Checkpoint', active: false },
   ];
 
-  for (const l of levies) {
-    await prisma.levySetting.create({ data: l });
+  const existingLevies = await prisma.levySetting.count();
+  if (existingLevies === 0) {
+    for (const l of levies) {
+      await prisma.levySetting.create({ data: l });
+    }
   }
 
   // ─── Routes + Trips + Payments for demo driver (Ade Ogunbiyi) ─────────────
   const demoDriver = await prisma.driver.findFirst({ where: { user: { phone: '08012345678' } } });
   const demoAgent = await prisma.agent.findFirst({ where: { user: { phone: '08099887766' } } });
 
-  if (demoDriver) {
+  const existingRoutes = demoDriver ? await prisma.route.count({ where: { driverId: demoDriver.id } }) : 1;
+
+  if (demoDriver && existingRoutes === 0) {
     const route1 = await prisma.route.create({
       data: {
         driverId: demoDriver.id,
