@@ -230,7 +230,7 @@ export default function Routes() {
                       <button onClick={() => deleteRoute(route.id)} className="text-sm text-surface-200/30 hover:text-rose-400 transition-colors flex items-center gap-1">
                         <Trash2 className="w-3.5 h-3.5" /> Delete Route
                       </button>
-                    </div>y
+                    </div>
 
                   </div>
                 </motion.div>
