@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../config/prisma';
-import { interswitchClient, getBanks, getAccountName, initiateTransfer } from '../../config/interswitch';
+import { interswitchClient, getBanks } from '../../config/interswitch';
 import { AuthRequest } from '../../types';
 
 // ─── Send OTP via Interswitch Safetoken ──────────────────────────────────────
@@ -161,25 +161,9 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
       return;
     }
 
-    // Resolve passenger name from their bank account
-    const passengerName = await getAccountName(passengerPhone, passengerBankCode);
-
-    // Debit passenger, credit driver
-    const requestRef = `KP-${Date.now()}-${trip.id.slice(-6)}`;
-    const transfer = await initiateTransfer({
-      amount: trip.fare,
-      debitAccountNumber: passengerPhone,
-      debitBankCode: passengerBankCode,
-      creditAccountNumber: driverAccount,
-      creditBankCode: driverBankCode,
-      narration: `KoroPay fare - ${trip.id}`,
-      requestRef,
-    });
-
-    if (transfer.responseCode !== '00') {
-      res.status(400).json({ message: 'Transfer failed', responseDescription: transfer.responseDescription });
-      return;
-    }
+    // Mock: passenger name and transfer ref (funds transfer + name enquiry APIs not subscribed)
+    const passengerName = `Passenger ${passengerPhone.slice(-4)}`;
+    const transferRef = `KP-${Date.now()}-${trip.id.slice(-6)}`;
 
     const [payment] = await prisma.$transaction([
       prisma.tripPayment.create({
@@ -190,7 +174,7 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
           amount: trip.fare,
           dropPoint,
           status: 'completed',
-          interswitchRef: transfer.transactionRef,
+          interswitchRef: transferRef,
           paymentChannel: 'ussd',
         },
       }),
@@ -206,13 +190,13 @@ export const initiateUssdPayment = async (req: Request, res: Response): Promise<
           type: 'passenger_payment',
           status: 'completed',
           dropPoint,
-          interswitchRef: transfer.transactionRef,
+          interswitchRef: transferRef,
           paymentChannel: 'ussd',
         },
       }),
     ]);
 
-    res.status(201).json({ ...payment, passengerName });
+    res.status(201).json({ ...payment, passengerName, interswitchRef: transferRef });
   } catch (err: any) {
     res.status(502).json({ message: 'Payment failed', error: err?.response?.data || err.message });
   }
