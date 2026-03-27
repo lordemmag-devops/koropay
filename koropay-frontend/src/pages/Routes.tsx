@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MapPin, Trash2, ChevronRight, Route as RouteIcon, Wallet, ArrowRight } from 'lucide-react';
+import { Plus, MapPin, Trash2, ChevronRight, Route as RouteIcon, Wallet} from 'lucide-react';
 import { driverApi } from '../utils/api';
 
 // This could come from your API or a config file
@@ -231,7 +231,7 @@ export default function Routes() {
                         <Trash2 className="w-3.5 h-3.5" /> Delete Route
                       </button>
                     </div>y
-                    
+
                   </div>
                 </motion.div>
               )}
