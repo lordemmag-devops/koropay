@@ -2,7 +2,7 @@
 
 > Digitizing informal transport payments — one trip at a time.
 
-KoroPay is a full-stack transport payment and management platform built for informal transport systems. It enables passengers to pay fixed fares digitally per trip, and allows transport unions to collect checkpoint levies using an OTP-based verification system — replacing cash, disputes, and manual record-keeping with a transparent, real-time digital flow.
+KoroPay is a transport payment and management platform built for informal transport systems. It enables passengers to pay fixed fares digitally per trip, and allows transport unions to collect checkpoint levies using an OTP-based verification system — replacing cash, disputes, and manual record-keeping with a transparent, real-time digital flow.
 
 ---
 
