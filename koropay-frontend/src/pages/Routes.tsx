@@ -1,13 +1,22 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MapPin, Trash2, ChevronRight, Route as RouteIcon, Wallet } from 'lucide-react';
+import { Plus, MapPin, Trash2, ChevronRight, Route as RouteIcon, Wallet} from 'lucide-react';
 import { driverApi } from '../utils/api';
+
+// This could come from your API or a config file
+const PREDEFINED_LOCATIONS = [
+  "Oshodi", "Yaba", "Lekki Phase 1", "Victoria Island", "Ikeja", "Berger", "Ajah", "CMS"
+];
 
 export default function Routes() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [newRouteName, setNewRouteName] = useState('');
+  
+  // New States for Start/End selection
+  const [startPoint, setStartPoint] = useState('');
+  const [endPoint, setEndPoint] = useState('');
+  
   const [newFare, setNewFare] = useState('');
   const [newDropPoints, setNewDropPoints] = useState<{ name: string }[]>([{ name: '' }]);
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
@@ -15,22 +24,31 @@ export default function Routes() {
 
   useEffect(() => {
     driverApi.getRoutes()
-      .then((data) => { setRoutes(data); setExpandedRoute(data[0]?.id ?? null); })
+      .then((data) => { 
+        setRoutes(data); 
+        if (data.length > 0) setExpandedRoute(data[0].id); 
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!startPoint || !endPoint) return alert("Please select start and end points");
+
     setSubmitting(true);
     try {
       const route = await driverApi.createRoute({
-        routeName: newRouteName,
+        // Automatically generate the name from selections
+        routeName: `${startPoint} → ${endPoint}`,
         fare: Number(newFare),
         dropPoints: newDropPoints.filter(dp => dp.name),
       });
       setRoutes([route, ...routes]);
-      setNewRouteName('');
+      
+      // Reset form
+      setStartPoint('');
+      setEndPoint('');
       setNewFare('');
       setNewDropPoints([{ name: '' }]);
       setShowForm(false);
@@ -79,12 +97,42 @@ export default function Routes() {
             onSubmit={handleSubmit}
             className="glass-card p-6 mb-8 overflow-hidden"
           >
-            <h3 className="text-lg font-semibold text-white mb-4">Create New Route</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <h3 className="text-lg font-semibold text-white mb-4">Set Route Details</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
+              {/* Start Point Select */}
               <div>
-                <label className="block text-sm font-medium text-surface-200/70 mb-2">Route Name</label>
-                <input type="text" value={newRouteName} onChange={(e) => setNewRouteName(e.target.value)} placeholder="e.g. Oshodi → Yaba" className="input-field" required />
+                <label className="block text-sm font-medium text-surface-200/70 mb-2">Start Point</label>
+                <select 
+                  value={startPoint} 
+                  onChange={(e) => setStartPoint(e.target.value)} 
+                  className="input-field appearance-none"
+                  required
+                >
+                  <option value="">Select Start</option>
+                  {PREDEFINED_LOCATIONS.map(loc => (
+                    <option key={loc} value={loc} disabled={loc === endPoint}>{loc}</option>
+                  ))}
+                </select>
               </div>
+
+              {/* End Point Select */}
+              <div>
+                <label className="block text-sm font-medium text-surface-200/70 mb-2">End Point</label>
+                <select 
+                  value={endPoint} 
+                  onChange={(e) => setEndPoint(e.target.value)} 
+                  className="input-field appearance-none"
+                  required
+                >
+                  <option value="">Select Destination</option>
+                  {PREDEFINED_LOCATIONS.map(loc => (
+                    <option key={loc} value={loc} disabled={loc === startPoint}>{loc}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Fare Input */}
               <div>
                 <label className="block text-sm font-medium text-surface-200/70 mb-2">Fixed Fare (₦)</label>
                 <div className="relative">
@@ -94,9 +142,10 @@ export default function Routes() {
               </div>
             </div>
 
+            {/* Intermediate Stops (Drop Points) */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-sm font-medium text-surface-200/70">Drop Points <span className="text-xs text-surface-200/30 ml-1">(optional)</span></label>
+                <label className="text-sm font-medium text-surface-200/70">Intermediate Stops <span className="text-xs text-surface-200/30 ml-1">(Optional stops in between)</span></label>
                 <button type="button" onClick={() => setNewDropPoints([...newDropPoints, { name: '' }])} className="text-primary-400 text-sm hover:text-primary-300 transition-colors flex items-center gap-1">
                   <Plus className="w-4 h-4" /> Add Stop
                 </button>
@@ -109,14 +158,12 @@ export default function Routes() {
                       type="text"
                       value={dp.name}
                       onChange={(e) => { const updated = [...newDropPoints]; updated[i].name = e.target.value; setNewDropPoints(updated); }}
-                      placeholder="Stop name"
+                      placeholder="e.g. Third Mainland Bridge"
                       className="input-field flex-1"
                     />
-                    {newDropPoints.length > 1 && (
-                      <button type="button" onClick={() => setNewDropPoints(newDropPoints.filter((_, idx) => idx !== i))} className="text-surface-200/30 hover:text-rose-400 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button type="button" onClick={() => setNewDropPoints(newDropPoints.filter((_, idx) => idx !== i))} className="text-surface-200/30 hover:text-rose-400 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </motion.div>
                 ))}
               </div>
@@ -124,7 +171,7 @@ export default function Routes() {
 
             <div className="flex gap-3">
               <button type="submit" disabled={submitting} className="btn-primary disabled:opacity-60">
-                {submitting ? 'Creating...' : 'Create Route'}
+                {submitting ? 'Creating...' : 'Save Route'}
               </button>
               <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
             </div>
@@ -132,6 +179,7 @@ export default function Routes() {
         )}
       </AnimatePresence>
 
+      {/* Routes List Rendering remains similar but looks better with the "->" in the title */}
       <div className="space-y-4">
         {routes.length === 0 && (
           <div className="glass-card p-8 text-center">
@@ -148,14 +196,13 @@ export default function Routes() {
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">{route.routeName}</h3>
-                  <p className="text-sm text-surface-200/50">{route.dropPoints?.length ?? 0} stops</p>
+                  <p className="text-sm text-surface-200/50">{route.dropPoints?.length ?? 0} intermediate stops</p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-emerald-400" />
                   <span className="text-lg font-bold bg-gradient-to-r from-primary-400 to-emerald-400 bg-clip-text text-transparent">₦{route.fare}</span>
-                  <span className="text-xs text-surface-200/30">fixed fare</span>
                 </div>
                 <ChevronRight className={`w-5 h-5 text-surface-200/30 transition-transform duration-300 ${expandedRoute === route.id ? 'rotate-90' : ''}`} />
               </div>
@@ -163,11 +210,12 @@ export default function Routes() {
 
             <AnimatePresence>
               {expandedRoute === route.id && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                   <div className="px-5 pb-5 border-t border-white/[0.04]">
                     <div className="pt-4 space-y-3">
+                      {/* Optional: Add Start point visually here */}
                       {(route.dropPoints ?? []).map((dp: any, i: number) => (
-                        <div key={dp.id} className="flex items-center gap-4">
+                        <div key={dp.id || i} className="flex items-center gap-4">
                           <div className="relative flex flex-col items-center">
                             <div className="w-8 h-8 rounded-full bg-surface-800 border border-white/[0.1] flex items-center justify-center">
                               <MapPin className="w-3.5 h-3.5 text-primary-400" />
@@ -182,7 +230,8 @@ export default function Routes() {
                       <button onClick={() => deleteRoute(route.id)} className="text-sm text-surface-200/30 hover:text-rose-400 transition-colors flex items-center gap-1">
                         <Trash2 className="w-3.5 h-3.5" /> Delete Route
                       </button>
-                    </div>
+                    </div>y
+
                   </div>
                 </motion.div>
               )}
