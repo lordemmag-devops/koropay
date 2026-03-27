@@ -2,7 +2,7 @@
 
 > Digitizing informal transport payments — one trip at a time.
 
-KoroPay is a full-stack transport payment and management platform built for informal transport systems. It enables passengers to pay fixed fares digitally per trip, and allows transport unions to collect checkpoint levies using an OTP-based verification system — replacing cash, disputes, and manual record-keeping with a transparent, real-time digital flow.
+KoroPay is a transport payment and management platform built for informal transport systems. It enables passengers to pay fixed fares digitally per trip, and allows transport unions to collect checkpoint levies using an OTP-based verification system — replacing cash, disputes, and manual record-keeping with a transparent, real-time digital flow.
 
 ---
 
@@ -41,7 +41,7 @@ Informal transport systems face persistent challenges:
 
 KoroPay provides:
 
-1. **Passenger-to-driver digital payments** — passenger dials USSD, Interswitch debits their bank account and credits the driver's account instantly
+1. **Passenger-to-driver digital payments** — passenger dials USSD,  Interswitch debits their bank account and credits the driver's account instantly
 2. **Automatic passenger name resolution** — pulled from the passenger's bank account via Interswitch account enquiry, no manual entry needed
 3. **Optional drop point selection** for driver awareness and record-keeping
 4. **Driver dashboard** for real-time trip tracking and earnings management
@@ -58,7 +58,7 @@ KoroPay provides:
 - Create and manage routes with fixed fares and drop points
 - Start a trip, receive real-time passenger payments, end trip with full summary
 - View earnings history broken down per trip
-- View and pay pending union levies via OTP
+- View and pay pending union levies  via OTP
 
 ### Agent (Checkpoint)
 - Dashboard showing all active drivers and today's collection
